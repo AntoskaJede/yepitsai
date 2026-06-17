@@ -1,0 +1,19 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#f9fafb"/>
+  
+  <!-- Logo -->
+  <rect x="100" y="80" width="56" height="56" rx="14" fill="#6366f1"/>
+  <text x="128" y="119" font-family="Inter, sans-serif" font-size="32" font-weight="900" fill="white" text-anchor="middle">Y</text>
+  <text x="172" y="118" font-family="Inter, sans-serif" font-size="28" font-weight="700" fill="#1e293b">YepIts.ai</text>
+  
+  <!-- Main headline -->
+  <text x="100" y="280" font-family="Inter, sans-serif" font-size="72" font-weight="900" fill="#1e293b">Watch less.</text>
+  <text x="100" y="360" font-family="Inter, sans-serif" font-size="72" font-weight="900" fill="#6366f1">Learn more.</text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="440" font-family="Inter, sans-serif" font-size="28" font-weight="400" fill="#64748b">Paste any YouTube link and get an instant summary</text>
+  <text x="100" y="478" font-family="Inter, sans-serif" font-size="28" font-weight="400" fill="#64748b">with key takeaways and timestamps.</text>
+  
+  <!-- Features -->
+  <text x="100" y="560" font-family="Inter, sans-serif" font-size="20" font-weight="500" fill="#94a3b8">Free to try  •  No credit card  •  Instant results</text>
+</svg>
