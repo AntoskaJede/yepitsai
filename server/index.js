@@ -440,7 +440,6 @@ async function getTranscript(videoId) {
 
   return null;
 }
-}
 
 function getDurationFromTranscript(transcript) {
   if (!transcript?.length) return 0;
