@@ -20,6 +20,7 @@ import {
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
