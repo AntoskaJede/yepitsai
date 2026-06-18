@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import https from 'https';
+import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -19,7 +20,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const JWT_SECRET = process.env.JWT_SECRET || 'yepitsai-dev-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET environment variable is required in production');
+  process.exit(1);
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'yepitsai-dev-secret';
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
@@ -32,6 +38,24 @@ try { fs.mkdirSync('/data', { recursive: true }); } catch {}
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Rate limiting — auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per IP
+  message: { error: 'Too many attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+});
+
+// Rate limiting — general API
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute per IP
+  standardHeaders: true,
+});
+
+app.use('/api/auth/', authLimiter);
+app.use('/api/', apiLimiter);
 
 // Webhook needs raw body — register BEFORE other middleware
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -77,7 +101,7 @@ function auth(req, res, next) {
   }
   try {
     const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, EFFECTIVE_JWT_SECRET);
     const user = getUserByEmail(decoded.email);
     if (!user) return res.status(401).json({ error: 'Account not found.' });
     req.user = resetUsageIfNeeded(user);
@@ -101,7 +125,7 @@ app.post('/api/auth/signup', async (req, res) => {
   const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const user = createUser({ id, email: normalized, passwordHash });
 
-  const token = jwt.sign({ email: normalized, id: user.id }, JWT_SECRET, { expiresIn: '30d' });
+  const token = jwt.sign({ email: normalized, id: user.id }, EFFECTIVE_JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { email: normalized, plan: 'free' } });
 });
 
@@ -114,12 +138,24 @@ app.post('/api/auth/login', async (req, res) => {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
 
-  const token = jwt.sign({ email: normalized, id: user.id }, JWT_SECRET, { expiresIn: '30d' });
+  const token = jwt.sign({ email: normalized, id: user.id }, EFFECTIVE_JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { email: normalized, plan: user.plan } });
 });
 
 app.get('/api/auth/me', auth, (req, res) => {
   res.json({ email: req.user.email, plan: req.user.plan });
+});
+
+// Account deletion (GDPR right to erasure)
+app.delete('/api/auth/delete', auth, (req, res) => {
+  try {
+    db.prepare('DELETE FROM summaries WHERE user_id = ?').run(req.user.id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Account deletion error:', err);
+    res.status(500).json({ error: 'Could not delete account. Please contact support.' });
+  }
 });
 
 // ============================================================
@@ -291,7 +327,18 @@ ${transcriptText}` }],
 
   let clean = message.content[0].text.trim();
   if (clean.startsWith('```')) clean = clean.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-  return JSON.parse(clean);
+  
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error('Claude JSON parse failed:', e.message, 'Raw:', clean.slice(0, 200));
+    // Fallback: return what we can
+    return {
+      summary: clean.slice(0, 500) || 'Summary could not be generated. Please try another video.',
+      takeaways: [],
+      timestamps: [],
+    };
+  }
 }
 
 // ============================================================

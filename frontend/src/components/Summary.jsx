@@ -26,6 +26,27 @@ export default function Summary({ data, onReset }) {
     setTimeout(() => setShowCopied(false), 2000);
   };
 
+  const handleDownload = (format) => {
+    const lines = [
+      `# ${title}`,
+      channel ? `*By ${channel}*\n` : '',
+      '## Summary\n',
+      summary,
+      '\n## Key Takeaways\n',
+      ...takeaways.map((t, i) => `${i + 1}. ${t}`),
+      '\n## Key Moments\n',
+      ...timestamps.map(ts => `- **${ts.time}** — ${ts.label}`),
+      '\n---\n*Summarized with [YepIts.ai](https://yepits.ai)*',
+    ];
+    const content = format === 'md' ? lines.join('\n') : lines.join('\n').replace(/[#*_-]/g, '').replace(/\[.*?\]\(.*?\)/g, 'YepIts.ai');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `summary-${videoId || 'video'}.${format === 'md' ? 'md' : 'txt'}`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   if (proRequired) {
     return <ProRequired duration={duration} onReset={onReset} />;
   }
@@ -60,6 +81,12 @@ export default function Summary({ data, onReset }) {
           </span>
         )}
         <div className="flex gap-2 ml-auto">
+          <button onClick={() => handleDownload('txt')} className="btn-secondary text-sm py-2 px-3" title="Download as text">
+            .txt
+          </button>
+          <button onClick={() => handleDownload('md')} className="btn-secondary text-sm py-2 px-3" title="Download as Markdown">
+            .md
+          </button>
           <button onClick={handleCopy} className="btn-secondary text-sm py-2 px-3 flex items-center gap-1.5">
             {copied ? (
               <>
