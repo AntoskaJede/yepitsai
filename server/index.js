@@ -343,62 +343,103 @@ async function getVideoMeta(videoId) {
 // Transcript fetching (InnerTube API)
 // ============================================================
 async function getTranscript(videoId) {
-  try {
-    const body = JSON.stringify({
-      context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38', hl: 'en', gl: 'US' } },
-      videoId,
-    });
-    const responseText = await fetchUrl('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-      method: 'POST',
-      body,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11)',
-      },
-    });
-    const data = JSON.parse(responseText);
-    const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    const enTrack = tracks.find(t => t.languageCode === 'en') || tracks[0];
+  // Try multiple client strategies — YouTube changes these frequently
+  const clients = [
+    {
+      name: 'ANDROID',
+      body: { context: { client: { clientName: 'ANDROID', clientVersion: '20.10.38', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11)' },
+    },
+    {
+      name: 'IOS',
+      body: { context: { client: { clientName: 'IOS', clientVersion: '20.10.38', hl: 'en', gl: 'US', deviceModel: 'iPhone16,2' } }, videoId },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'com.google.ios.youtube/20.10.38 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X)' },
+    },
+    {
+      name: 'TVHTML5',
+      body: { context: { client: { clientName: 'TVHTML5', clientVersion: '7.20241201.18.00', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15' },
+    },
+    {
+      name: 'WEB',
+      body: { context: { client: { clientName: 'WEB', clientVersion: '2.20241201.00.00', hl: 'en', gl: 'US' } }, videoId },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
+    },
+  ];
 
-    if (enTrack?.baseUrl) {
-      const transcriptUrl = enTrack.baseUrl + (enTrack.baseUrl.includes('?') ? '&' : '?') + 'fmt=json3';
-      const transcriptRaw = await fetchUrl(transcriptUrl);
-      let segments = [];
-      
-      if (transcriptRaw.trim().startsWith('{')) {
-        const parsed = JSON.parse(transcriptRaw);
-        for (const event of (parsed.events || [])) {
-          if (!event.segs) continue;
-          const text = event.segs.map(s => s.utf8 || '').join('').trim();
-          if (text && text !== '\n') {
-            segments.push({ text, offset: event.tStartMs || 0, duration: event.dDurationMs || 0 });
-          }
-        }
-      } else if (transcriptRaw.trim().startsWith('<')) {
-        const textMatches = [...transcriptRaw.matchAll(/<text[^>]*start="([\d.]+)"[^>]*(?:dur="([\d.]+)")?[^>]*>([\s\S]*?)<\/text>/g)];
-        for (const m of textMatches) {
-          const rawText = m[3].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
-          if (rawText) {
-            segments.push({ text: rawText, offset: Math.floor(parseFloat(m[1]) * 1000), duration: Math.floor((parseFloat(m[2]) || 0) * 1000) });
+  for (const client of clients) {
+    try {
+      const responseText = await fetchUrl('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+        method: 'POST',
+        body: JSON.stringify(client.body),
+        headers: client.headers,
+      });
+      const data = JSON.parse(responseText);
+      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+
+      if (tracks.length === 0) {
+        console.log(`Transcript: ${client.name} returned no tracks`);
+        continue;
+      }
+
+      const enTrack = tracks.find(t => t.languageCode?.startsWith('en')) || tracks[0];
+
+      if (enTrack?.baseUrl) {
+        const formats = ['json3', 'srv3', 'srv2', 'srv1'];
+        let segments = [];
+
+        for (const fmt of formats) {
+          try {
+            const transcriptUrl = enTrack.baseUrl + (enTrack.baseUrl.includes('?') ? '&' : '?') + `fmt=${fmt}`;
+            const transcriptRaw = await fetchUrl(transcriptUrl);
+
+            if (fmt === 'json3' && transcriptRaw.trim().startsWith('{')) {
+              const parsed = JSON.parse(transcriptRaw);
+              for (const event of (parsed.events || [])) {
+                if (!event.segs) continue;
+                const text = event.segs.map(s => s.utf8 || '').join('').trim();
+                if (text && text !== '\n') {
+                  segments.push({ text, offset: event.tStartMs || 0, duration: event.dDurationMs || 0 });
+                }
+              }
+            } else if (transcriptRaw.trim().startsWith('<')) {
+              const textMatches = [...transcriptRaw.matchAll(/<text[^>]*start="([\d.]+)"[^>]*(?:dur="([\d.]+)")?[^>]*>([\s\S]*?)<\/text>/g)];
+              for (const m of textMatches) {
+                const rawText = m[3].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+                if (rawText) {
+                  segments.push({ text: rawText, offset: Math.floor(parseFloat(m[1]) * 1000), duration: Math.floor((parseFloat(m[2]) || 0) * 1000) });
+                }
+              }
+            }
+
+            if (segments.length > 0) {
+              console.log(`Transcript: ${client.name} + ${fmt} = ${segments.length} segments`);
+              return segments;
+            }
+          } catch (e) {
+            console.log(`Format ${fmt} failed:`, e.message);
           }
         }
       }
-      
-      if (segments.length > 0) return segments;
+    } catch (e) {
+      console.log(`InnerTube ${client.name} failed:`, e.message);
     }
-  } catch (e) {
-    console.log('InnerTube failed:', e.message);
   }
 
+  // Last resort: youtube-transcript library
   try {
     const { YoutubeTranscript } = await import('youtube-transcript');
     const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
-    if (transcript?.length > 0) return transcript;
+    if (transcript?.length > 0) {
+      console.log(`Transcript: library fallback = ${transcript.length} segments`);
+      return transcript;
+    }
   } catch (e) {
     console.log('Library failed:', e.message);
   }
 
   return null;
+}
 }
 
 function getDurationFromTranscript(transcript) {
