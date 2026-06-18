@@ -413,6 +413,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(distPath));
+
+  // Serve static legal pages before SPA catch-all
+  const staticPages = ['privacy', 'terms', 'cookies', 'refund', 'dmca'];
+  staticPages.forEach(page => {
+    app.get(`/${page}`, (req, res) => {
+      res.sendFile(path.join(distPath, `${page}.html`));
+    });
+  });
+
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
