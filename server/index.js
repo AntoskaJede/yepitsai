@@ -489,6 +489,12 @@ ${transcriptText}` }],
 // ============================================================
 app.post('/api/summarize', auth, async (req, res) => {
   try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'Please provide a YouTube URL.' });
+
+    const videoId = extractVideoId(url);
+    if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
+
     const usage = checkUsage(req.user);
     if (!usage.allowed) {
       return res.status(402).json({
@@ -496,12 +502,6 @@ app.post('/api/summarize', auth, async (req, res) => {
         limitReached: true,
       });
     }
-
-    const { url } = req.body;
-    if (!url) return res.status(400).json({ error: 'Please provide a YouTube URL.' });
-
-    const videoId = extractVideoId(url);
-    if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
     const transcript = await getTranscript(videoId);
     if (!transcript) {
