@@ -140,8 +140,16 @@ function Header({ user, onLogout, onLogin }) {
 function Footer() {
   return (
     <footer className="border-t border-slate-border bg-white/50">
-      <div className="max-w-4xl mx-auto px-4 py-4 text-center">
-        <p className="text-sm text-slate-dim">Made with care</p>
+      <div className="max-w-4xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-sm text-slate-dim">© 2026 YepIts.ai</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <a href="/privacy" className="text-slate-dim hover:text-indigo-500 transition-colors">Privacy</a>
+          <a href="/terms" className="text-slate-dim hover:text-indigo-500 transition-colors">Terms</a>
+          <a href="/cookies" className="text-slate-dim hover:text-indigo-500 transition-colors">Cookies</a>
+          <a href="/refund" className="text-slate-dim hover:text-indigo-500 transition-colors">Refunds</a>
+          <a href="/dmca" className="text-slate-dim hover:text-indigo-500 transition-colors">DMCA</a>
+          <a href="mailto:pava@yepits.ai" className="text-slate-dim hover:text-indigo-500 transition-colors">Contact</a>
+        </div>
       </div>
     </footer>
   );
