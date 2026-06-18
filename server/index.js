@@ -495,6 +495,8 @@ app.post('/api/summarize', auth, async (req, res) => {
     const videoId = extractVideoId(url);
     if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
+    // Check usage AFTER we know it's a valid video, but DON'T increment yet
+    // We only increment when a summary is actually returned
     const usage = checkUsage(req.user);
     if (!usage.allowed) {
       return res.status(402).json({
@@ -512,11 +514,13 @@ app.post('/api/summarize', auth, async (req, res) => {
 
     const durationMinutes = getDurationFromTranscript(transcript);
 
+    // Free tier: show Pro upsell for long videos (NO usage consumed)
     if (durationMinutes > 15 && req.user.plan === 'free') {
       const meta = await getVideoMeta(videoId);
       return res.json({ proRequired: true, duration: durationMinutes, title: meta.title, channel: meta.channel, videoId });
     }
 
+    // Now do the actual summary — this is the expensive operation
     const transcriptText = transcript
       .map(e => {
         const s = Math.floor(e.offset / 1000);
@@ -529,6 +533,7 @@ app.post('/api/summarize', auth, async (req, res) => {
       summarizeWithClaude(transcriptText, videoId),
     ]);
 
+    // Only increment usage AFTER successful summary
     incrementUsage(req.user.id);
     addSummary(req.user.id, videoId, meta.title);
 
