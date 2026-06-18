@@ -6,10 +6,15 @@ export default function Auth({ mode: initialMode, onAuth, onClose }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (mode === 'signup' && !agreed) {
+      setError('Please accept the Terms and Privacy Policy to continue.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -69,6 +74,24 @@ export default function Auth({ mode: initialMode, onAuth, onClose }) {
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
+
+          {mode === 'signup' && (
+            <label className="flex items-start gap-2 text-xs text-slate-muted">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                className="mt-0.5"
+                required
+              />
+              <span>
+                I agree to the{' '}
+                <a href="/terms" target="_blank" className="text-indigo-500 hover:underline">Terms of Service</a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" className="text-indigo-500 hover:underline">Privacy Policy</a>.
+              </span>
+            </label>
+          )}
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}

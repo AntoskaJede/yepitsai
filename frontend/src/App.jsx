@@ -3,6 +3,7 @@ import Landing from './components/Landing.jsx';
 import Summary from './components/Summary.jsx';
 import Loading from './components/Loading.jsx';
 import Auth from './components/Auth.jsx';
+import CookieBanner from './components/CookieBanner.jsx';
 
 export default function App() {
   const [view, setView] = useState('landing');
@@ -94,6 +95,7 @@ export default function App() {
         )}
       </main>
       <Footer />
+      <CookieBanner />
 
       {showAuth && (
         <Auth
