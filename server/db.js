@@ -14,6 +14,10 @@ db.exec(`
     stripe_subscription_id TEXT,
     summaries_used INTEGER DEFAULT 0,
     summaries_reset_at INTEGER DEFAULT 0,
+    email_verified INTEGER DEFAULT 0,
+    verify_token TEXT,
+    reset_token TEXT,
+    reset_expires INTEGER,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -33,9 +37,15 @@ db.exec(`
   );
 `);
 
-export function createUser({ id, email, passwordHash }) {
-  db.prepare('INSERT INTO users (id, email, password_hash, summaries_reset_at) VALUES (?, ?, ?, ?)').run(
-    id, email, passwordHash, Date.now() + 24 * 60 * 60 * 1000
+// Add columns if they don't exist (for existing DBs)
+try { db.exec('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN verify_token TEXT'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN reset_expires INTEGER'); } catch {}
+
+export function createUser({ id, email, passwordHash, verifyToken }) {
+  db.prepare('INSERT INTO users (id, email, password_hash, summaries_reset_at, verify_token) VALUES (?, ?, ?, ?, ?)').run(
+    id, email, passwordHash, Date.now() + 24 * 60 * 60 * 1000, verifyToken
   );
   return getUserByEmail(email);
 }
