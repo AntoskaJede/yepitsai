@@ -106,37 +106,66 @@ function optionalAuth(req, res, next) {
 }
 
 // ─── YouTube Transcript Fetch (via Jina proxy + direct fallback) ───
-// ─── YouTube Transcript Fetch (youtube-transcript package) ───
+// ─── YouTube Transcript Fetch (youtube-transcript + Supadata fallback) ───
 import { fetchTranscript as fetchYouTubeTranscript } from 'youtube-transcript'
 
+const SUPADATA_KEY = process.env.SUPADATA_KEY || 'sd_8d77b7ef2a92dc8bd874f43b39cb041e'
+
 async function fetchTranscript(videoId) {
-  const segments = await fetchYouTubeTranscript(videoId, { lang: 'en' })
-  
-  if (!segments || segments.length === 0) {
-    throw new Error('No captions available for this video')
-  }
-
-  // Get title from oEmbed (no auth needed, works from any IP)
-  let title = 'YouTube Video'
+  // Strategy 1: youtube-transcript package (primary)
   try {
-    const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
-    if (oembedRes.ok) {
-      const oembed = await oembedRes.json()
-      title = oembed.title || title
-    }
-  } catch {}
+    const segments = await fetchYouTubeTranscript(videoId, { lang: 'en' })
+    if (segments && segments.length > 0) {
+      // Get title from oEmbed
+      let title = 'YouTube Video'
+      try {
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+        if (oembedRes.ok) title = (await oembedRes.json()).title || title
+      } catch {}
 
-  const transcript = segments.map(s => s.text || '').join(' ')
-  
-  return {
-    title,
-    durationMin: 0,
-    transcript,
-    segments: segments.map(s => ({ 
-      start: typeof s.start === 'number' ? s.start : 0, 
-      text: s.text || ''
-    }))
+      return {
+        title,
+        durationMin: 0,
+        transcript: segments.map(s => s.text || '').join(' '),
+        segments: segments.map(s => ({ start: typeof s.start === 'number' ? s.start : 0, text: s.text || '' }))
+      }
+    }
+  } catch (err) {
+    console.log(`[transcript] youtube-transcript failed: ${err.message}, trying Supadata...`)
   }
+
+  // Strategy 2: Supadata API (fallback)
+  try {
+    const res = await fetch(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en`, {
+      headers: { 'x-api-key': SUPADATA_KEY }
+    })
+    const data = await res.json()
+
+    if (data.content && Array.isArray(data.content) && data.content.length > 0) {
+      // Get title from oEmbed
+      let title = 'YouTube Video'
+      try {
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+        if (oembedRes.ok) title = (await oembedRes.json()).title || title
+      } catch {}
+
+      const segments = data.content.map((item, i) => ({
+        start: typeof item.start === 'number' ? item.start : i * 5,
+        text: item.text || ''
+      }))
+
+      return {
+        title,
+        durationMin: 0,
+        transcript: segments.map(s => s.text).join(' '),
+        segments
+      }
+    }
+  } catch (err) {
+    console.log(`[transcript] Supadata failed: ${err.message}`)
+  }
+
+  throw new Error('No captions available for this video')
 }
 
 // ─── AI Summary (Claude) ───────────────────────────────
