@@ -298,14 +298,25 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
   const ipHash = getIpHash(req)
   const isPro = req.user ? db.prepare('SELECT plan FROM users WHERE id = ?').get(req.user.id)?.plan === 'pro' : false
 
-  // FIX #5: Check IP-based limit (prevents multi-account abuse)
+  // Check daily limit BEFORE fetching transcript (prevents over-usage)
   if (!isPro) {
+    // IP-based check (applies to all free users + anonymous)
     const ipUsed = getIpDailyCount(ipHash)
     if (ipUsed >= IP_DAILY_LIMIT) {
       return res.status(429).json({
-        error: 'Daily free limit reached. Sign up and upgrade to Pro for unlimited summaries.',
+        error: "Daily free limit reached. Upgrade to Pro for unlimited summaries.",
         needsAuth: !req.user
       })
+    }
+    // Account-based check (for logged-in free users)
+    if (req.user) {
+      const used = getUserDailyCount(req.user.id)
+      if (used >= FREE_DAILY_LIMIT) {
+        return res.status(429).json({
+          error: "You've used all your free summaries for today. Upgrade to Pro for unlimited access.",
+          remaining: 0
+        })
+      }
     }
   }
 
@@ -316,17 +327,6 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Check duration for free users
     if (!isPro && durationMin > FREE_MAX_DURATION) {
       return res.status(403).json({ tooLong: true, duration: durationMin })
-    }
-
-    // Check daily limit for logged-in free users
-    if (req.user && !isPro) {
-      const used = getUserDailyCount(req.user.id)
-      if (used >= FREE_DAILY_LIMIT) {
-        return res.status(429).json({
-          error: "You've used all your free summaries for today. Upgrade to Pro for unlimited access.",
-          remaining: 0
-        })
-      }
     }
 
     // Generate summary
