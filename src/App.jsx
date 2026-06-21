@@ -191,6 +191,7 @@ function Header({ user, onLogin, onSignup, onLogout, onUpgrade }) {
 function Landing({ onSummarize, loading, error, user }) {
   const [url, setUrl] = useState('')
   const [dailyLeft, setDailyLeft] = useState(null)
+  const [showEmptyError, setShowEmptyError] = useState(false)
 
   useEffect(() => {
     // Fetch usage info
@@ -205,6 +206,21 @@ function Landing({ onSummarize, loading, error, user }) {
     e.preventDefault()
     if (!url.trim()) return
     onSummarize(url.trim())
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !url.trim()) {
+      e.preventDefault()
+      setShowEmptyError(true)
+      setTimeout(() => setShowEmptyError(false), 2000)
+    }
+  }
+
+  const handleClick = () => {
+    if (!url.trim()) {
+      setShowEmptyError(true)
+      setTimeout(() => setShowEmptyError(false), 2000)
+    }
   }
 
   return (
@@ -227,10 +243,23 @@ function Landing({ onSummarize, loading, error, user }) {
           className="input flex-1 text-base"
           autoFocus
         />
-        <button type="submit" disabled={loading || !url.trim()} className="btn-primary whitespace-nowrap">
+        <button type="submit" onClick={handleClick} disabled={loading} className={`whitespace-nowrap font-semibold rounded-lg px-6 py-2.5 transition-all ${loading ? 'bg-indigo-400 text-white opacity-75' : 'bg-indigo-500 hover:bg-indigo-600 text-white'} ${showEmptyError ? 'ring-2 ring-red-400 ring-offset-2' : ''}`}>
           {loading ? 'Summarizing...' : 'Summarize'}
         </button>
       </form>
+
+      {/* Empty URL error */}
+      {showEmptyError && (
+        <p className="mt-2 text-sm text-red-500">Paste a YouTube link first</p>
+      )}
+
+      {/* Try example */}
+      <button
+        onClick={() => { setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); }}
+        className="mt-3 text-sm text-slate-400 hover:text-indigo-500 transition-colors underline"
+      >
+        or try an example →
+      </button>
 
       {/* Free badge */}
       <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-400">
@@ -275,14 +304,31 @@ function Landing({ onSummarize, loading, error, user }) {
           </div>
         </div>
       )}
+
+      {/* Use cases */}
+      {!loading && (
+        <div className="mt-16 mb-10">
+          <h2 className="text-sm font-semibold text-indigo-500 uppercase tracking-wide mb-8">Who uses it</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left max-w-2xl mx-auto">
+            <Step icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>} title="Students" desc="Summarize lecture videos before exams instead of rewatching the whole thing." />
+            <Step icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12a8.25 8.25 0 0116.5 0M3.75 12v4.5A2.25 2.25 0 006 18.75h.75a.75.75 0 00.75-.75v-3a.75.75 0 00-.75-.75H6a2.25 2.25 0 00-2.25 2.25zM20.25 12v4.5a2.25 2.25 0 01-2.25 2.25h-.75a.75.75 0 01-.75-.75v-3a.75.75 0 01.75-.75H18a2.25 2.25 0 012.25 2.25z" /></svg>} title="Podcast listeners" desc="Catch up on 2-hour episodes during a coffee break." />
+            <Step icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25M6.75 17.25L1.5 12l5.25-5.25" /></svg>} title="Developers" desc="Skip the 10-minute intros and jump straight to the code." />
+            <Step icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>} title="Writers & researchers" desc="Pull key points from video sources without watching them." />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function Step({ num, title, desc }) {
+function Step({ num, title, desc, icon }) {
   return (
     <div className="text-center sm:text-left">
-      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 font-bold flex items-center justify-center mb-3 mx-auto sm:mx-0">{num}</div>
+      {icon ? (
+        <div className="w-8 h-8 mb-3 mx-auto sm:mx-0 text-indigo-500">{icon}</div>
+      ) : num ? (
+        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 font-bold flex items-center justify-center mb-3 mx-auto sm:mx-0">{num}</div>
+      ) : null}
       <h3 className="font-semibold text-slate-800 mb-1">{title}</h3>
       <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
     </div>
@@ -498,8 +544,10 @@ function PricingSection({ onUpgrade }) {
 function FAQSection() {
   const faqs = [
     { q: 'How much does it cost?', a: 'Free: 3 summaries per day for videos up to 15 minutes. Pro: $7/month for unlimited summaries, any video length, export options, and no branding.' },
+    { q: 'Is there a Chrome extension?', a: 'Yes! The YepIts.ai extension adds a button to any YouTube video. Click it and the summary appears in a side panel — no copy-pasting URLs. Available for Chrome and Brave.' },
     { q: 'How accurate are the summaries?', a: 'Very. We use Claude (by Anthropic) to analyze the full transcript and extract the most important points. It works best on talking-head videos, lectures, and podcasts where there\'s clear speech.' },
     { q: 'What languages are supported?', a: 'Any video that has captions or subtitles (either auto-generated or manual). Most YouTube videos qualify. The summary is generated in English regardless of the video language.' },
+    { q: 'Is my data stored?', a: 'We store your email and which videos you\'ve summarized (for usage tracking). We don\'t store the actual video content. Your summaries are not shared with anyone.' },
     { q: 'Can I export my summaries?', a: 'Yes — Pro users can export to plain text or Markdown format with one click.' },
     { q: 'Does it work on podcasts?', a: 'Absolutely. Podcasts are actually one of the best use cases — get the key points of a 2-hour episode in seconds.' }
   ]
