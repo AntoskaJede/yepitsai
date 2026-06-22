@@ -1,0 +1,49 @@
+# robots.txt — YepIts.ai
+# Allow all major AI crawlers and search bots
+
+# GPTBot (OpenAI training)
+User-agent: GPTBot
+Allow: /
+
+# ChatGPT-User (OpenAI real-time fetch)
+User-agent: ChatGPT-User
+Allow: /
+
+# OAI-SearchBot (OpenAI SearchGPT)
+User-agent: OAI-SearchBot
+Allow: /
+
+# PerplexityBot (Perplexity training)
+User-agent: PerplexityBot
+Allow: /
+
+# Perplexity-User (Perplexity real-time fetch)
+User-agent: Perplexity-User
+Allow: /
+
+# ClaudeBot (Anthropic training)
+User-agent: ClaudeBot
+Allow: /
+
+# Claude-Web (Anthropic real-time fetch)
+User-agent: Claude-Web
+Allow: /
+
+# Google-Extended (Google AI training)
+User-agent: Google-Extended
+Allow: /
+
+# CCBot (Common Crawl)
+User-agent: CCBot
+Allow: /
+
+# Applebot-Extended (Apple AI training)
+User-agent: Applebot-Extended
+Allow: /
+
+# Allow all other bots
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://yepits.ai/sitemap.xml

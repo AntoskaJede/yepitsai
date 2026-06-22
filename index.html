@@ -17,6 +17,126 @@
     <meta name="twitter:image" content="https://yepits.ai/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- JSON-LD: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "YepIts.ai",
+      "url": "https://yepits.ai",
+      "description": "AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries with transcripts, chapters, and timestamps.",
+      "sameAs": [
+        "https://twitter.com/yepitsai",
+        "https://github.com/yepitsai",
+        "https://www.crunchbase.com/organization/yepitsai",
+        "https://www.linkedin.com/company/yepitsai",
+        "https://www.producthunt.com/products/yepitsai"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "YepIts.ai",
+      "url": "https://yepits.ai",
+      "description": "AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries with key takeaways and timestamps.",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "3 summaries per day for videos up to 15 minutes."
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "7",
+          "priceCurrency": "USD",
+          "description": "Unlimited summaries with no video length restrictions."
+        }
+      ],
+      "featureList": [
+        "AI-powered video summaries in seconds",
+        "Key takeaways extraction",
+        "Clickable timestamps",
+        "Chrome extension",
+        "Export to text and Markdown"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How much does YepIts.ai cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Free: 3 summaries per day for videos up to 15 minutes. Pro: $7/month for unlimited summaries, any video length, export options, and no branding."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a Chrome extension?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! The YepIts.ai extension adds a button to any YouTube video. Click it and the summary appears in a side panel — no copy-pasting URLs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How accurate are the summaries?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Very. We use Claude by Anthropic to analyze the full transcript and extract the most important points. It works best on talking-head videos, lectures, and podcasts."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What languages are supported?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any video that has captions or subtitles (either auto-generated or manual). Most YouTube videos qualify. The summary is generated in English regardless of the video language."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data stored?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We store your email and which videos you've summarized for usage tracking. We don't store the actual video content. Your summaries are not shared with anyone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I export my summaries?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — Pro users can export to plain text or Markdown format with one click."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work on podcasts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Absolutely. Podcasts are actually one of the best use cases — get the key points of a 2-hour episode in seconds."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

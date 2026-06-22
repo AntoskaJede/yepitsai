@@ -1,0 +1,24 @@
+# YepIts.ai
+
+> YepIts.ai is an AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries. Get the key points of any video in seconds — transcripts, chapters, timestamps, and exportable summaries. Free tier: 3 summaries/day for videos up to 15 minutes. Pro tier: $7/month for unlimited summaries with no length restrictions.
+
+## Product Pages
+
+- [YepIts.ai Homepage](https://yepits.ai/) — AI YouTube video summarizer
+- [Pricing](https://yepits.ai/#pricing) — Free and Pro ($7/mo) plans
+- [Chrome Extension](https://yepits.ai/extension) — Summarize videos directly from YouTube
+- [Sign Up](https://yepits.ai/signup) — Create a free account
+
+## Blog
+
+- [YepIts.ai Blog](https://yepits.ai/blog) — Tips, tutorials, and updates on AI video summarization
+
+## FAQ
+
+- [Frequently Asked Questions](https://yepits.ai/#faq) — Pricing, accuracy, languages, privacy, and more
+
+## Documentation
+
+- [How It Works](https://yepits.ai/#how-it-works) — Upload a URL, get a summary in seconds
+- [Privacy Policy](https://yepits.ai/privacy) — How we handle your data
+- [Terms of Service](https://yepits.ai/terms) — Usage terms and conditions
