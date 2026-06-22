@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
+import { BlogList, BlogPost } from './Blog'
 
 const API = ''
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('yepits_token') || '')
   const [user, setUser] = useState(null)
-  const [view, setView] = useState('landing') // landing, result, tooLong, auth, terms, privacy
+  const [view, setView] = useState('landing') // landing, result, tooLong, auth, terms, privacy, blog, blog-post
+  const [blogSlug, setBlogSlug] = useState('')
   const [summaryData, setSummaryData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -118,9 +120,20 @@ function App() {
     }
   }
 
+  const navigateToBlogPost = (slug) => {
+    setBlogSlug(slug)
+    setView('blog-post')
+    window.scrollTo({ top: 0 })
+  }
+
+  const navigateToBlog = () => {
+    setView('blog')
+    window.scrollTo({ top: 0 })
+  }
+
   return (
     <div className="min-h-screen">
-      <Header user={user} onLogin={() => { setAuthMode('login'); setView('auth') }} onSignup={() => { setAuthMode('signup'); setView('auth') }} onLogout={handleLogout} onUpgrade={handleUpgrade} />
+      <Header user={user} onLogin={() => { setAuthMode('login'); setView('auth') }} onSignup={() => { setAuthMode('signup'); setView('auth') }} onLogout={handleLogout} onUpgrade={handleUpgrade} onBlog={navigateToBlog} />
 
       {view === 'landing' && (
         <Landing onSummarize={handleSummarize} loading={loading} error={error} user={user} />
@@ -148,22 +161,35 @@ function App() {
 
       {view === 'terms' && <TermsView />}
       {view === 'privacy' && <PrivacyView />}
+
+      {view === 'blog' && (
+        <BlogList onNavigate={navigateToBlogPost} />
+      )}
+
+      {view === 'blog-post' && (
+        <BlogPost slug={blogSlug} onNavigate={(slug) => slug === 'blog' ? navigateToBlog() : navigateToBlogPost(slug)} />
+      )}
       <Footer onNavigate={setView} />
     </div>
   )
 }
 
 // ─── Header ───────────────────────────────────────────
-function Header({ user, onLogin, onSignup, onLogout, onUpgrade }) {
+function Header({ user, onLogin, onSignup, onLogout, onUpgrade, onBlog }) {
   return (
     <header className="sticky top-0 z-20 bg-white/70 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">Y</span>
-          </div>
-          <span className="font-bold text-slate-800">YepIts.ai</span>
-        </a>
+        <div className="flex items-center gap-6">
+          <a href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">Y</span>
+            </div>
+            <span className="font-bold text-slate-800">YepIts.ai</span>
+          </a>
+          <button onClick={onBlog} className="text-sm text-slate-600 hover:text-indigo-500 transition-colors hidden sm:inline">
+            Blog
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           {user ? (
             <>
@@ -578,6 +604,7 @@ function Footer({ onNavigate }) {
       <div className="max-w-5xl mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
         <span>© 2026 YepIts.ai</span>
         <div className="flex gap-4">
+          <button onClick={() => onNavigate('blog')} className="hover:text-slate-600 transition-colors">Blog</button>
           <button onClick={() => onNavigate('terms')} className="hover:text-slate-600 transition-colors">Terms of Service</button>
           <button onClick={() => onNavigate('privacy')} className="hover:text-slate-600 transition-colors">Privacy Policy</button>
         </div>
