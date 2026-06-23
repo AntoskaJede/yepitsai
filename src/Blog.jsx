@@ -341,4 +341,4 @@ export function BlogPost({ slug, onNavigate }) {
   )
 }
 
-export default Blog
+// BlogList and BlogPost are the named exports used by App.jsx
