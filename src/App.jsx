@@ -114,8 +114,11 @@ function Header({ user, onLogin, onSignup, onLogout, onUpgrade, onBlog }) {
     <header className="sticky top-0 z-20 bg-cream/85 backdrop-blur-md border-b border-cream-300">
       <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-clay flex items-center justify-center text-white font-extrabold text-sm -rotate-3">Y</div>
+          <a href="/" className="flex items-center gap-2.5">
+            <svg width="36" height="36" viewBox="0 0 100 100" className="flex-shrink-0">
+              <rect x="10" y="10" width="80" height="80" rx="20" fill="#FF4F00" transform="rotate(-3 50 50)"/>
+              <text x="50" y="72" fontFamily="Arial Black, sans-serif" fontSize="56" fontWeight="900" fill="white" textAnchor="middle" transform="rotate(-3 50 50)">Y</text>
+            </svg>
             <span className="font-extrabold text-ink text-xl">YepIts.ai</span>
           </a>
           <button onClick={onBlog} className="text-sm text-ink-muted hover:text-clay transition-colors hidden sm:inline font-medium">Blog</button>
