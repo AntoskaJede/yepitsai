@@ -18,7 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'yepitsai-jwt-secret-2026'
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'yepitsai.db')
 const FREE_DAILY_LIMIT = 3
 const FREE_MAX_DURATION = 15 // minutes
-const IP_DAILY_LIMIT = 5 // FIX #5: Prevent multi-account abuse
+const IP_DAILY_LIMIT = 3 // Anonymous visitors get 3 free summaries
 const PORT = process.env.PORT || 3001
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })

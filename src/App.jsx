@@ -279,19 +279,19 @@ function Landing({ onSummarize, loading, error, user }) {
         <p className="mt-2 text-sm text-red-500">Paste a YouTube link first</p>
       )}
 
-      {/* Try example */}
+      {/* Try example — use a genuinely useful video */}
       <button
-        onClick={() => { setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); }}
+        onClick={() => { setUrl('https://www.youtube.com/watch?v=8jPQjjsBbIc'); }}
         className="mt-3 text-sm text-slate-400 hover:text-indigo-500 transition-colors underline"
       >
-        or try an example →
+        or try with a TED talk →
       </button>
 
       {/* Free badge */}
       <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-400">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-          Free to try — 3 summaries per day
+          No sign-up needed — try it right now
         </span>
         {dailyLeft !== null && (
           <span className="text-slate-400">{dailyLeft} free summaries left today</span>
@@ -316,6 +316,45 @@ function Landing({ onSummarize, loading, error, user }) {
           </div>
           <h2 className="text-xl font-semibold text-slate-800 mb-1">Summarizing...</h2>
           <p className="text-sm text-slate-400">Reading the transcript and extracting key points.</p>
+        </div>
+      )}
+
+      {/* Demo Preview — shows what a summary looks like */}
+      {!loading && (
+        <div className="mt-16 text-left">
+          <p className="text-center text-sm font-semibold text-indigo-500 uppercase tracking-wide mb-6">Here's what you get</p>
+          <div className="card mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-16 h-10 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">TED Talk: "How great leaders inspire action"</p>
+                <p className="text-xs text-slate-400">17 min • Simon Sinek</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Summary</p>
+                <p className="text-sm text-slate-600 leading-relaxed">Simon Sinek explains that inspiring leaders and organizations communicate from the inside out — they start with the "why" (purpose, cause, belief) rather than the "what" (product, service). The Golden Circle model (Why → How → What) explains why some leaders can inspire while others can't...</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Key Takeaways</p>
+                <ul className="space-y-1 text-sm text-slate-600">
+                  <li className="flex gap-2"><span className="text-indigo-500 font-bold">1.</span> People don't buy what you do, they buy why you do it</li>
+                  <li className="flex gap-2"><span className="text-indigo-500 font-bold">2.</span> The Golden Circle: Why → How → What</li>
+                  <li className="flex gap-2"><span className="text-indigo-500 font-bold">3.</span> Apple's success comes from starting with "why"</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Key Moments</p>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-xs font-mono font-semibold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">2:15</span>
+                  <span className="text-xs text-slate-500">The Golden Circle model</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -542,6 +581,7 @@ function PricingSection({ onUpgrade }) {
           <h3 className="text-lg font-bold text-slate-800 mb-1">Free</h3>
           <p className="text-3xl font-black text-slate-800 mb-4">$0</p>
           <ul className="space-y-2 text-sm text-slate-500">
+            <li><strong className="text-slate-700">No sign-up needed</strong></li>
             <li>3 summaries per day</li>
             <li>Videos up to 15 minutes</li>
             <li>Key takeaways & timestamps</li>

@@ -305,8 +305,8 @@ export function BlogPost({ slug, onNavigate }) {
 
       {/* CTA */}
       <div className="mt-12 mb-10 p-6 bg-indigo-50 rounded-2xl text-center">
-        <h3 className="text-lg font-bold text-slate-800 mb-2">Try YepIts.ai free</h3>
-        <p className="text-sm text-slate-500 mb-4">Paste any YouTube link and get an instant AI summary.</p>
+        <h3 className="text-lg font-bold text-slate-800 mb-2">Try it free — no sign-up needed</h3>
+        <p className="text-sm text-slate-500 mb-4">Paste any YouTube link and get an instant AI summary with key takeaways and timestamps.</p>
         <a
           href="/"
           className="inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg px-6 py-2.5 transition-all"
