@@ -12,11 +12,17 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [authMode, setAuthMode] = useState('login')
+  const [shareId, setShareId] = useState(null)
 
   useEffect(() => {
     const path = window.location.pathname
     if (path === '/terms') setView('terms')
     else if (path === '/privacy') setView('privacy')
+    else if (path.startsWith('/s/')) {
+      const shareId = path.split('/s/')[1]
+      setView('shared')
+      setShareId(shareId)
+    }
   }, [])
 
   useEffect(() => {
@@ -90,6 +96,7 @@ function App() {
       {view === 'privacy' && <PrivacyView />}
       {view === 'blog' && <BlogList onNavigate={navigateToBlogPost} />}
       {view === 'blog-post' && <BlogPost slug={blogSlug} onNavigate={(slug) => slug === 'blog' ? navigateToBlog() : navigateToBlogPost(slug)} />}
+      {view === 'shared' && <SharedSummary shareId={shareId} onReset={() => setView('landing')} />}
       <Footer onNavigate={setView} />
     </div>
   )
@@ -298,6 +305,25 @@ function Landing({ onSummarize, loading, error, user }) {
 // ─── Summary Result View ──────────────────────────────
 function SummaryView({ data, onReset }) {
   const { title, summary, keyTakeaways, keyMoments, videoId, remaining } = data
+  const [shareUrl, setShareUrl] = useState(null)
+  const [shareLoading, setShareLoading] = useState(false)
+
+  const handleShare = async () => {
+    setShareLoading(true)
+    try {
+      const res = await fetch(`${API}/api/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, title, summary, takeaways: keyTakeaways, timestamps: keyMoments })
+      })
+      const d = await res.json()
+      if (d.url) {
+        setShareUrl(d.url)
+        navigator.clipboard.writeText(d.url).catch(() => {})
+      }
+    } catch {} finally { setShareLoading(false) }
+  }
+
   const handleExport = (format) => {
     let content = `# ${title}\n\n## Summary\n${summary}\n`
     if (keyTakeaways?.length) content += `\n## Key Takeaways\n${keyTakeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n`
@@ -347,6 +373,18 @@ function SummaryView({ data, onReset }) {
           </div>
         </div>
       )}
+      {/* Share button */}
+      <div className="text-center mb-6">
+        {shareUrl ? (
+          <div className="inline-flex items-center gap-2 bg-moss-soft text-moss px-4 py-2 rounded-full text-sm font-medium">
+            ✓ Link copied! <span className="text-ink-faint font-mono text-xs">{shareUrl}</span>
+          </div>
+        ) : (
+          <button onClick={handleShare} disabled={shareLoading} className="btn-secondary inline-flex items-center gap-2">
+            {shareLoading ? 'Creating link...' : '🔗 Share this summary'}
+          </button>
+        )}
+      </div>
       {remaining !== undefined && remaining <= 1 && (
         <div className="card-light mb-6 text-center">
           <p className="text-sm text-ink-muted">
@@ -517,6 +555,88 @@ function Footer({ onNavigate }) {
         </div>
       </div>
     </footer>
+  )
+}
+
+// ─── Shared Summary View ──────────────────────────────
+function SharedSummary({ shareId, onReset }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch(`${API}/api/shared/${shareId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) { setData(d); setLoading(false) } else { setError('Summary not found'); setLoading(false) } })
+      .catch(() => { setError('Failed to load'); setLoading(false) })
+  }, [shareId])
+
+  if (loading) return (
+    <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+      <div className="inline-flex items-center justify-center mb-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full border-[3px] border-clay-soft" />
+          <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-clay animate-spin" />
+        </div>
+      </div>
+      <p className="text-sm text-ink-faint">Loading shared summary...</p>
+    </div>
+  )
+
+  if (error) return (
+    <div className="max-w-xl mx-auto px-6 py-20 text-center">
+      <h2 className="text-xl font-bold text-ink mb-2">{error}</h2>
+      <button onClick={onReset} className="btn-primary mt-4">Back to YepIts.ai</button>
+    </div>
+  )
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="bg-clay-soft text-clay text-sm font-semibold text-center py-2 rounded-lg mb-6">
+        🔗 Shared via YepIts.ai — <a href="https://yepits.ai" className="underline">Try it free</a>
+      </div>
+      {data.title && <h1 className="text-xl font-bold text-ink mb-6">{data.title}</h1>}
+      {data.summary && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Summary</h2>
+          <p className="text-ink-muted leading-relaxed whitespace-pre-line">{data.summary}</p>
+        </div>
+      )}
+      {data.takeaways?.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Key Takeaways</h2>
+          <ul className="space-y-2">
+            {data.takeaways.map((t, i) => (
+              <li key={i} className="flex gap-2.5 text-ink-muted leading-relaxed items-start">
+                <span className="w-[22px] h-[22px] rounded-md bg-clay-soft flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon.Minus className="w-3 h-3 text-clay" />
+                </span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.timestamps?.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Key Moments</h2>
+          <div className="space-y-2">
+            {data.timestamps.map((m, i) => (
+              <a key={i} href={`https://www.youtube.com/watch?v=${data.videoId}&t=${m.seconds || 0}s`} target="_blank" rel="noopener noreferrer"
+                className="flex gap-3 items-start p-2 -mx-2 rounded-lg hover:bg-cream transition-colors group">
+                <span className="font-mono text-xs font-bold text-clay bg-clay-soft px-2 py-1 rounded-md flex-shrink-0">{m.time}</span>
+                <span className="text-sm text-ink-muted group-hover:text-ink">{m.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="card-light text-center py-6 mb-6">
+        <h3 className="font-bold text-ink mb-2">Summarize your own videos</h3>
+        <p className="text-sm text-ink-muted mb-4">Free — 3 summaries/day, no sign-up needed</p>
+        <button onClick={onReset} className="btn-primary">Try YepIts.ai →</button>
+      </div>
+    </div>
   )
 }
 

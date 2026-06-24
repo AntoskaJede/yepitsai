@@ -58,6 +58,16 @@ db.exec(`
     source TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS shared_summaries (
+    share_id TEXT PRIMARY KEY,
+    summary_id TEXT,
+    video_id TEXT,
+    title TEXT,
+    summary TEXT,
+    takeaways TEXT,
+    timestamps TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   CREATE INDEX IF NOT EXISTS idx_summaries_user ON summaries(user_id);
   CREATE INDEX IF NOT EXISTS idx_summaries_ip ON summaries(ip_hash);
 `)
@@ -366,6 +376,36 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
       res.status(500).json({ error: 'Something went wrong. Try a different video.' })
     }
   }
+})
+
+// ── Shareable summary links ──
+// Create a share link after summarizing
+app.post('/api/share', async (req, res) => {
+  const { videoId, title, summary, takeaways, timestamps } = req.body
+  if (!summary || !videoId) return res.status(400).json({ error: 'Missing data' })
+
+  const shareId = 'sh_' + Date.now().toString(36) + crypto.randomBytes(4).toString('hex')
+  db.prepare(`INSERT INTO shared_summaries (share_id, summary_id, video_id, title, summary, takeaways, timestamps) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
+    shareId, null, videoId, title || 'Untitled', summary,
+    JSON.stringify(takeaways || []), JSON.stringify(timestamps || [])
+  )
+
+  res.json({ shareId, url: `https://yepits.ai/s/${shareId}` })
+})
+
+// Fetch a shared summary (public, no auth)
+app.get('/api/shared/:shareId', (req, res) => {
+  const row = db.prepare('SELECT * FROM shared_summaries WHERE share_id = ?').get(req.params.shareId)
+  if (!row) return res.status(404).json({ error: 'Summary not found' })
+
+  res.json({
+    videoId: row.video_id,
+    title: row.title,
+    summary: row.summary,
+    takeaways: JSON.parse(row.takeaways || '[]'),
+    timestamps: JSON.parse(row.timestamps || '[]'),
+    createdAt: row.created_at
+  })
 })
 
 // Stripe checkout
