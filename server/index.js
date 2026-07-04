@@ -41,6 +41,24 @@ const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || '';
 const FROM_EMAIL = 'YepIts.ai <pava@yepits.ai>';
 const APP_URL = process.env.NODE_ENV === 'production' ? 'https://yepits.ai' : 'http://localhost:5173';
 
+// In-memory cache for summaries (videoId -> summary data)
+// In production, this should use Redis, but for MVP this works
+const summaryCache = new Map();
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getSummaryFromCache(videoId) {
+  const cached = summaryCache.get(videoId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  summaryCache.delete(videoId);
+  return null;
+}
+
+function setSummaryCache(videoId, data) {
+  summaryCache.set(videoId, { data, timestamp: Date.now() });
+}
+
 // Ensure /data directory exists for SQLite
 try { fs.mkdirSync('/data', { recursive: true }); } catch {}
 
@@ -131,7 +149,7 @@ function generateToken() {
 }
 
 // ============================================================
-// Auth middleware
+// Auth middleware (optional for free tier)
 // ============================================================
 function auth(req, res, next) {
   const header = req.headers.authorization;
@@ -148,6 +166,33 @@ function auth(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Invalid or expired session.' });
   }
+}
+
+// Optional auth — allow both authenticated users and anonymous (IP-based)
+function optionalAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    try {
+      const token = header.split(' ')[1];
+      const decoded = jwt.verify(token, EFFECTIVE_JWT_SECRET);
+      const user = getUserByEmail(decoded.email);
+      if (user) {
+        req.user = resetUsageIfNeeded(user);
+        return next();
+      }
+    } catch {}
+  }
+
+  // Anonymous user — use IP for rate limiting
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  req.user = {
+    id: `anon_${ip}`,
+    email: null,
+    plan: 'free',
+    summaries_used: 0,
+    summary_reset_date: new Date().toISOString().split('T')[0],
+  };
+  next();
 }
 
 // ============================================================
@@ -268,14 +313,35 @@ app.post('/api/stripe/portal', auth, async (req, res) => {
 });
 
 // ============================================================
+// Pricing tiers — easily configurable
+// ============================================================
+const TIERS = {
+  free: {
+    summaries_per_day: 3,
+    max_video_length: 15, // minutes
+    features: ['Key takeaways', 'Timestamps', 'Copy to clipboard'],
+  },
+  pro: {
+    summaries_per_day: Infinity,
+    max_video_length: Infinity,
+    features: ['Unlimited summaries', 'Any video length', 'Export to .md/.txt', 'No ads'],
+  },
+};
+
+// ============================================================
 // Usage tracking
 // ============================================================
 function checkUsage(user) {
-  const limits = { free: 3, pro: Infinity };
-  const limit = limits[user.plan] || 3;
+  const tier = TIERS[user.plan] || TIERS.free;
+  const limit = tier.summaries_per_day;
   const used = user.summaries_used || 0;
   if (used >= limit) return { allowed: false, remaining: 0, limit };
   return { allowed: true, remaining: limit - used, limit };
+}
+
+function getVideoLengthLimit(user) {
+  const tier = TIERS[user.plan] || TIERS.free;
+  return tier.max_video_length;
 }
 
 // ============================================================
@@ -485,9 +551,9 @@ ${transcriptText}` }],
 }
 
 // ============================================================
-// MAIN ENDPOINT
+// MAIN ENDPOINT — Now supports both auth and anonymous
 // ============================================================
-app.post('/api/summarize', auth, async (req, res) => {
+app.post('/api/summarize', optionalAuth, async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'Please provide a YouTube URL.' });
@@ -496,7 +562,6 @@ app.post('/api/summarize', auth, async (req, res) => {
     if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
     // Check usage AFTER we know it's a valid video, but DON'T increment yet
-    // We only increment when a summary is actually returned
     const usage = checkUsage(req.user);
     if (!usage.allowed) {
       return res.status(402).json({
@@ -505,22 +570,42 @@ app.post('/api/summarize', auth, async (req, res) => {
       });
     }
 
+    // Check cache first — massive cost savings!
+    const cached = getSummaryFromCache(videoId);
+    if (cached) {
+      return res.json({
+        title: cached.title, channel: cached.channel, duration: cached.duration, videoId,
+        summary: cached.summary, takeaways: cached.takeaways, timestamps: cached.timestamps,
+        remaining: usage.remaining, limit: usage.limit,
+        cached: true, // Let frontend know this was cached
+      });
+    }
+
     const transcript = await getTranscript(videoId);
     if (!transcript) {
       return res.status(400).json({
-        error: "This video doesn't have English captions or subtitles available. Try a video with auto-generated or manual captions.",
+        error: "This video doesn't have captions. Try a video with auto-generated or manual captions.",
       });
     }
 
     const durationMinutes = getDurationFromTranscript(transcript);
+    const maxLength = getVideoLengthLimit(req.user);
 
-    // Free tier: show Pro upsell for long videos (NO usage consumed)
-    if (durationMinutes > 15 && req.user.plan === 'free') {
+    // Check if video exceeds tier limit
+    if (durationMinutes > maxLength) {
       const meta = await getVideoMeta(videoId);
-      return res.json({ proRequired: true, duration: durationMinutes, title: meta.title, channel: meta.channel, videoId });
+      return res.json({
+        proRequired: true,
+        duration: durationMinutes,
+        title: meta.title,
+        channel: meta.channel,
+        videoId,
+        tier: req.user.plan,
+        maxLength,
+      });
     }
 
-    // Now do the actual summary — this is the expensive operation
+    // Do the actual summary
     const transcriptText = transcript
       .map(e => {
         const s = Math.floor(e.offset / 1000);
@@ -533,9 +618,18 @@ app.post('/api/summarize', auth, async (req, res) => {
       summarizeWithClaude(transcriptText, videoId),
     ]);
 
+    // Cache the summary for future requests
+    setSummaryCache(videoId, { title: meta.title, channel: meta.channel, duration: durationMinutes, summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps });
+
     // Only increment usage AFTER successful summary
-    incrementUsage(req.user.id);
-    addSummary(req.user.id, videoId, meta.title);
+    if (req.user.id.startsWith('anon_')) {
+      // Anonymous user — increment in session, no DB
+      req.user.summaries_used = (req.user.summaries_used || 0) + 1;
+    } else {
+      // Authenticated user — increment in DB
+      incrementUsage(req.user.id);
+      addSummary(req.user.id, videoId, meta.title);
+    }
 
     res.json({
       title: meta.title, channel: meta.channel, duration: durationMinutes, videoId,
@@ -588,6 +682,66 @@ app.post('/api/create-checkout-session', auth, async (req, res) => {
 
 app.get('/api/stripe-config', (req, res) => {
   res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY, priceId: STRIPE_PRICE_ID });
+});
+
+// ============================================================
+// Compare two video summaries
+// ============================================================
+app.post('/api/compare', optionalAuth, async (req, res) => {
+  try {
+    const { url1, url2 } = req.body;
+    if (!url1 || !url2) return res.status(400).json({ error: 'Two YouTube URLs required.' });
+
+    const videoId1 = extractVideoId(url1);
+    const videoId2 = extractVideoId(url2);
+    if (!videoId1 || !videoId2) return res.status(400).json({ error: 'Invalid YouTube URLs.' });
+
+    // Get both summaries (from cache or generate)
+    let summary1 = getSummaryFromCache(videoId1);
+    let summary2 = getSummaryFromCache(videoId2);
+
+    if (!summary1) {
+      const transcript1 = await getTranscript(videoId1);
+      if (!transcript1) return res.status(400).json({ error: 'Video 1 has no captions.' });
+      const text1 = transcript1.map(e => {
+        const s = Math.floor(e.offset / 1000);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} ${e.text}`;
+      }).join('\n');
+      const meta1 = await getVideoMeta(videoId1);
+      const sum1 = await summarizeWithClaude(text1, videoId1);
+      summary1 = { title: meta1.title, channel: meta1.channel, duration: getDurationFromTranscript(transcript1), ...sum1 };
+      setSummaryCache(videoId1, summary1);
+    }
+
+    if (!summary2) {
+      const transcript2 = await getTranscript(videoId2);
+      if (!transcript2) return res.status(400).json({ error: 'Video 2 has no captions.' });
+      const text2 = transcript2.map(e => {
+        const s = Math.floor(e.offset / 1000);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} ${e.text}`;
+      }).join('\n');
+      const meta2 = await getVideoMeta(videoId2);
+      const sum2 = await summarizeWithClaude(text2, videoId2);
+      summary2 = { title: meta2.title, channel: meta2.channel, duration: getDurationFromTranscript(transcript2), ...sum2 };
+      setSummaryCache(videoId2, summary2);
+    }
+
+    // Calculate similarity (simple: count matching takeaways)
+    const matchingTakeaways = (summary1.takeaways || []).filter(t1 =>
+      (summary2.takeaways || []).some(t2 => t1.toLowerCase().includes(t2.toLowerCase().substring(0, 30)) || t2.toLowerCase().includes(t1.toLowerCase().substring(0, 30)))
+    ).length;
+    const similarity = Math.round((matchingTakeaways / Math.max(1, (summary1.takeaways || []).length)) * 100);
+
+    res.json({
+      video1: { videoId: videoId1, ...summary1 },
+      video2: { videoId: videoId2, ...summary2 },
+      similarity, // percentage
+      matchingTakeaways,
+    });
+  } catch (err) {
+    console.error('Compare error:', err);
+    res.status(500).json({ error: 'Could not compare videos.' });
+  }
 });
 
 // ============================================================

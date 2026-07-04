@@ -4,6 +4,7 @@ import Summary from './components/Summary.jsx';
 import Loading from './components/Loading.jsx';
 import Auth from './components/Auth.jsx';
 import CookieBanner from './components/CookieBanner.jsx';
+import Compare from './components/Compare.jsx';
 
 export default function App() {
   const [view, setView] = useState('landing');
@@ -28,25 +29,30 @@ export default function App() {
   }, []);
 
   const handleSummarize = async (url) => {
-    if (!user) {
-      setShowAuth('signup');
-      return;
-    }
     setView('loading');
     setError('');
     try {
       const token = localStorage.getItem('yepits_token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/summarize', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({ url }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        if (res.status === 402 && data.limitReached) {
+          setError('You\'ve used your 3 free summaries for today. Sign in to upgrade to Pro for unlimited.');
+          setShowAuth('login');
+        } else {
+          setError(data.error || 'Something went wrong. Please try again.');
+        }
         setView('error');
         return;
       }
@@ -80,10 +86,13 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <Header user={user} onLogout={handleLogout} onLogin={() => setShowAuth('login')} />
       <main className="flex-1 flex flex-col items-center px-4 py-12">
-        {view === 'landing' && <Landing onSummarize={handleSummarize} user={user} />}
+        {view === 'landing' && <Landing onSummarize={handleSummarize} user={user} onCompare={() => setView('compare')} />}
         {view === 'loading' && <Loading />}
         {view === 'summary' && summaryData && (
           <Summary data={summaryData} onReset={handleReset} />
+        )}
+        {view === 'compare' && (
+          <Compare onReset={handleReset} />
         )}
         {view === 'error' && (
           <div className="w-full max-w-xl text-center">

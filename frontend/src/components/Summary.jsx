@@ -47,6 +47,21 @@ export default function Summary({ data, onReset }) {
     URL.revokeObjectURL(a.href);
   };
 
+  const shareText = `I just summarized "${title}" with YepIts.ai — turn any YouTube video into a 2-minute read.`;
+  const shareUrl = window.location.origin + window.location.pathname;
+
+  const handleShare = (platform) => {
+    let url = '';
+    if (platform === 'twitter') {
+      url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    } else if (platform === 'linkedin') {
+      url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    } else if (platform === 'email') {
+      url = `mailto:?subject=${encodeURIComponent(`Check out this summary: ${title}`)}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
+    }
+    if (url) window.open(url, '_blank', 'width=600,height=400');
+  };
+
   if (proRequired) {
     return <ProRequired duration={duration} onReset={onReset} />;
   }
@@ -74,20 +89,14 @@ export default function Summary({ data, onReset }) {
       </div>
 
       {/* Action bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         {remaining !== undefined && (
           <span className="text-sm text-slate-dim font-medium">
             {remaining > 0 ? `${remaining} of ${limit} free summaries left today` : 'No free summaries left today'}
           </span>
         )}
-        <div className="flex gap-2 ml-auto">
-          <button onClick={() => handleDownload('txt')} className="btn-secondary text-sm py-2 px-3" title="Download as text">
-            .txt
-          </button>
-          <button onClick={() => handleDownload('md')} className="btn-secondary text-sm py-2 px-3" title="Download as Markdown">
-            .md
-          </button>
-          <button onClick={handleCopy} className="btn-secondary text-sm py-2 px-3 flex items-center gap-1.5">
+        <div className="flex flex-wrap gap-2 ml-auto">
+          <button onClick={handleCopy} className="btn-secondary text-sm py-2 px-3 flex items-center gap-1.5" title="Copy to clipboard">
             {copied ? (
               <>
                 <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,6 +112,32 @@ export default function Summary({ data, onReset }) {
                 Copy
               </>
             )}
+          </button>
+
+          {/* Share buttons */}
+          <button onClick={() => handleShare('twitter')} className="btn-secondary text-sm py-2 px-3" title="Share on X">
+            <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.62 21.75H-1.26l7.73-8.835L-1.54 2.25h6.514l4.888 6.469L18.244 2.25zM17.1 19.25h1.828L5.1 4.105H3.16L17.1 19.25z" />
+            </svg>
+          </button>
+
+          <button onClick={() => handleShare('linkedin')} className="btn-secondary text-sm py-2 px-3" title="Share on LinkedIn">
+            <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+            </svg>
+          </button>
+
+          <button onClick={() => handleShare('email')} className="btn-secondary text-sm py-2 px-3" title="Share via email">
+            <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </button>
+
+          <button onClick={() => handleDownload('txt')} className="btn-secondary text-sm py-2 px-3" title="Download as text">
+            .txt
+          </button>
+          <button onClick={() => handleDownload('md')} className="btn-secondary text-sm py-2 px-3" title="Download as Markdown">
+            .md
           </button>
         </div>
       </div>

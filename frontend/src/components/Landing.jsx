@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Landing({ onSummarize, user }) {
+export default function Landing({ onSummarize, user, onCompare }) {
   const [url, setUrl] = useState('');
 
   // Auto-fill from URL param (Chrome extension / shared links)
@@ -192,6 +192,17 @@ export default function Landing({ onSummarize, user }) {
             <h3 className="font-semibold text-slate-text mb-1.5">Is there a limit on free tier?</h3>
             <p className="text-sm text-slate-muted leading-relaxed">Yes — 3 summaries per day, videos up to 15 minutes. That covers most quick tutorials, shorts, and clips. Pro removes all limits.</p>
           </div>
+        </div>
+      </section>
+
+      {/* Comparison CTA */}
+      <section className="max-w-2xl mx-auto mb-24">
+        <div className="card text-center">
+          <h2 className="text-xl font-bold text-slate-text mb-2">See how videos compare</h2>
+          <p className="text-sm text-slate-muted mb-4">Paste two URLs and see how much they overlap in ideas and takeaways.</p>
+          <button onClick={onCompare} className="btn-primary text-sm">
+            Compare two videos
+          </button>
         </div>
       </section>
 

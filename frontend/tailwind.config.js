@@ -4,6 +4,24 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Background colors
+        bg: {
+          primary: '#f9fafb',   // Main background
+          card: '#ffffff',      // Card background
+          overlay: '#f3f4f6',   // Overlay/hover
+        },
+        // Text colors
+        text: {
+          primary: '#1e293b',   // Main text
+          secondary: '#64748b', // Secondary text
+          muted: '#94a3b8',     // Muted text
+        },
+        // Border colors
+        border: {
+          default: '#e2e8f0',   // Normal border
+          dark: '#cbd5e1',      // Darker border
+        },
+        // Semantic colors
         mist: {
           DEFAULT: '#f9fafb',
           card: '#ffffff',
@@ -26,6 +44,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      spacing: {
+        safe: '1rem',
       },
     },
   },
