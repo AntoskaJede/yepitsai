@@ -1,27 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Bricolage Grotesque', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
       colors: {
-        // Background colors
-        bg: {
-          primary: '#f9fafb',   // Main background
-          card: '#ffffff',      // Card background
-          overlay: '#f3f4f6',   // Overlay/hover
-        },
-        // Text colors
-        text: {
-          primary: '#1e293b',   // Main text
-          secondary: '#64748b', // Secondary text
-          muted: '#94a3b8',     // Muted text
-        },
-        // Border colors
-        border: {
-          default: '#e2e8f0',   // Normal border
-          dark: '#cbd5e1',      // Darker border
-        },
-        // Semantic colors
+        cream: { DEFAULT: '#FAF6F0', 100: '#FAF6F0', 200: '#F5EFE6', 300: '#F0EBE3' },
+        clay: { DEFAULT: '#FF4F00', light: '#FF8C42', soft: '#FFE8DD' },
+        ink: { DEFAULT: '#1a1a1a', light: '#262626', muted: '#666', faint: '#999' },
+        moss: { DEFAULT: '#00C853', soft: '#E6F9F0' },
+        // Keep existing color system for compatibility
         mist: {
           DEFAULT: '#f9fafb',
           card: '#ffffff',
@@ -41,14 +32,8 @@ export default {
           600: '#4f46e5',
           700: '#4338ca',
         },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      spacing: {
-        safe: '1rem',
-      },
-    },
+      }
+    }
   },
-  plugins: [],
-};
+  plugins: []
+}
