@@ -24,11 +24,14 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('FATAL: JWT_SECRET environment variable is required in production');
-  process.exit(1);
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: JWT_SECRET environment variable is required in production');
+    process.exit(1);
+  }
+  console.warn('[WARN] JWT_SECRET not set — using insecure dev fallback. DO NOT ship this to production.');
 }
-const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'yepitsai-dev-secret';
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'yepitsai-dev-fallback-DO-NOT-SHIP';
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
@@ -77,7 +80,22 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGINS || 'https://yepits.ai,http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow same-origin / curl / server-to-server (no Origin header)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Disallowed: respond without CORS headers (browser will block the request)
+    return cb(null, false);
+  },
+  methods: ['GET', 'POST'],
+  credentials: false,
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Rate limiting — auth endpoints
@@ -755,9 +773,11 @@ app.get('/api/health', (req, res) => {
 // Serve frontend
 // ============================================================
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../frontend/dist');
+  const publicPath = path.join(__dirname, '../public');
+  // Public static assets (robots.txt, llms.txt, sitemap.xml, favicon.svg, etc.) win over SPA fallback
+  app.use(express.static(publicPath));
   app.use(express.static(distPath));
 
   const staticPages = ['privacy', 'terms', 'cookies', 'refund', 'dmca'];

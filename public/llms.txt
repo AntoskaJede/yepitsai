@@ -1,13 +1,12 @@
 # YepIts.ai
 
-> YepIts.ai is an AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries. Get the key points of any video in seconds — transcripts, chapters, timestamps, and exportable summaries. Free tier: 3 summaries/day for videos up to 15 minutes. Pro tier: $7/month for unlimited summaries with no length restrictions.
+> YepIts.ai is an AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries. Get the key points of any video in seconds — transcripts, key takeaways, and clickable timestamps. Free tier: 3 summaries per day for videos up to 15 minutes. Pro tier: $7/month for unlimited summaries with no video length cap.
 
 ## Product Pages
 
-- [YepIts.ai Homepage](https://yepits.ai/) — AI YouTube video summarizer
-- [Pricing](https://yepits.ai/#pricing) — Free and Pro ($7/mo) plans
-- [Chrome Extension](https://yepits.ai/extension) — Summarize videos directly from YouTube
-- [Sign Up](https://yepits.ai/signup) — Create a free account
+- [YepIts.ai Homepage](https://yepits.ai/) — Paste any YouTube URL and get an AI summary in seconds
+- [Pricing](https://yepits.ai/#pricing) — Free (3/day, videos ≤15 min) and Pro ($7/mo, unlimited)
+- [Sign Up](https://yepits.ai/) — Use the homepage; no account required for the free tier
 
 ## Blog
 
@@ -19,6 +18,11 @@
 
 ## Documentation
 
-- [How It Works](https://yepits.ai/#how-it-works) — Upload a URL, get a summary in seconds
+- [How It Works](https://yepits.ai/#how-it-works) — Paste a URL, get a summary in seconds. No account needed.
 - [Privacy Policy](https://yepits.ai/privacy) — How we handle your data
 - [Terms of Service](https://yepits.ai/terms) — Usage terms and conditions
+
+## Roadmap
+
+- Chrome / browser extension — planned (build phase Q3 2026)
+- Shareable summary pages — planned
