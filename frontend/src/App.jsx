@@ -43,10 +43,21 @@ function App() {
           setView('auth');
           setError('You\'ve used your 3 free summaries for today. Sign in to upgrade to Pro for unlimited.');
         }
-        else if (data.tooLong) { setView('tooLong'); setSummaryData({ duration: data.duration }) }
+        else if (data.tooLong || data.proRequired) { setView('tooLong'); setSummaryData({ duration: data.duration }) }
         else { setError(data.error || 'Something went wrong. Try again.') }
       } else {
-        setSummaryData(data); setView('result')
+        // Backend may return 200 with proRequired (free-tier over-limit) but no summary body
+        if (data.proRequired || data.tooLong) {
+          setView('tooLong'); setSummaryData({ duration: data.duration })
+        } else {
+          // Guard against an empty/partial payload (e.g. backend returns 200 but no summary)
+          const hasContent = data && (data.summary || data.keyTakeaways?.length || data.keyMoments?.length || data.takeaways?.length || data.timestamps?.length)
+          if (!hasContent) {
+            setError('We couldn\'t generate a summary for this video. It may be too long for the free plan, or it lacks captions — try a shorter, captioned video, or upgrade to Pro.')
+          } else {
+            setSummaryData(data); setView('result')
+          }
+        }
       }
     } catch { setError('Network error. Check your connection.') } finally { setLoading(false) }
   }
@@ -199,7 +210,7 @@ function Landing({ onSummarize, loading, error, user }) {
           Free — 3 summaries/day. No account needed.
         </div>
 
-        <button onClick={() => { setUrl('https://www.youtube.com/watch?v=8jPQjjsBbIc'); }}
+        <button onClick={() => { setUrl('https://www.youtube.com/watch?v=8jPQjjsBbIc'); onSummarize('https://www.youtube.com/watch?v=8jPQjjsBbIc'); }}
           className="mt-3 block mx-auto text-sm text-ink-faint hover:text-clay transition-colors underline">
           or try with a TED talk →
         </button>
