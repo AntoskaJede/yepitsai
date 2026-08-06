@@ -11,12 +11,35 @@ function App() {
   const [summaryData, setSummaryData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [authMode, setAuthMode] = useState('login')
 
   useEffect(() => {
     const path = window.location.pathname
     if (path === '/terms') setView('terms')
     else if (path === '/privacy') setView('privacy')
+
+    const params = new URLSearchParams(window.location.search)
+    const verifyToken = params.get('verify')
+    const upgraded = params.get('upgraded')
+    const canceled = params.get('canceled')
+    const cleanUrl = () => window.history.replaceState({}, document.title, window.location.pathname)
+
+    if (verifyToken) {
+      fetch(`${API}/api/auth/verify?token=${encodeURIComponent(verifyToken)}`)
+        .then(r => r.ok ? r.json() : Promise.reject(new Error()))
+        .then(() => { setNotice('Your email is verified. You can now upgrade to Pro anytime.'); setUser(u => u ? { ...u, verified: true } : u) })
+        .catch(() => setError('This verification link is invalid or has expired.'))
+        .finally(cleanUrl)
+    } else if (upgraded) {
+      cleanUrl()
+      if (token) fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d) setUser(d.user) })
+      setNotice('Welcome to Pro! Your plan is now active — enjoy unlimited summaries.')
+    } else if (canceled) {
+      cleanUrl()
+      setNotice('Upgrade canceled. You can upgrade whenever you\'re ready.')
+    }
   }, [])
 
   useEffect(() => {
@@ -234,6 +257,12 @@ function Landing({ onSummarize, loading, error, user }) {
       {error && !loading && (
         <div className="max-w-xl mx-auto px-6 pb-8">
           <div className="bg-red-50 border-2 border-red-100 rounded-2xl p-4 text-sm text-red-500">{error}</div>
+        </div>
+      )}
+
+      {notice && !error && (
+        <div className="max-w-xl mx-auto px-6 pb-8">
+          <div className="bg-green-50 border-2 border-green-100 rounded-2xl p-4 text-sm text-green-600">{notice}</div>
         </div>
       )}
 
