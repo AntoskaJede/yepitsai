@@ -773,6 +773,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', ...getStats() });
 });
 
+// TEMP DEBUG — shows what origin value the server sees
+app.get('/api/_debug/origin', (req, res) => {
+  res.json({
+    origin: req.headers.origin || null,
+    rawHeaders: { origin: req.headers.origin, referer: req.headers.referer },
+  });
+});
+
 // ============================================================
 // Serve frontend
 // ============================================================
