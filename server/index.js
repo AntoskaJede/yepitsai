@@ -90,10 +90,14 @@ app.use(cors({
     // Allow same-origin / curl / server-to-server (no Origin header)
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow Chrome extensions with explicit host_permissions for this domain.
+    // Their Origin header is `chrome-extension://<EXTENSION_ID>`; only extensions
+    // that declared host_permissions for yepits.ai can send one, so this is safe.
+    if (origin.startsWith('chrome-extension://')) return cb(null, true);
     // Disallowed: respond without CORS headers (browser will block the request)
     return cb(null, false);
   },
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE'],
   credentials: false,
 }));
 app.use(express.json({ limit: '10mb' }));
