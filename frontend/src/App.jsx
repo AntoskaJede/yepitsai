@@ -113,7 +113,7 @@ function App() {
     <div className="min-h-screen">
       <Header user={user} onLogin={() => { setAuthMode('login'); setView('auth') }} onSignup={() => { setAuthMode('signup'); setView('auth') }} onLogout={handleLogout} onUpgrade={handleUpgrade} onBlog={navigateToBlog} />
 
-      {view === 'landing' && <Landing onSummarize={handleSummarize} loading={loading} error={error} user={user} />}
+      {view === 'landing' && <Landing onSummarize={handleSummarize} loading={loading} error={error} user={user} notice={notice} />}
       {view === 'result' && summaryData && <SummaryView data={summaryData} onReset={() => setView('landing')} />}
       {view === 'tooLong' && <TooLongView duration={summaryData?.duration} onUpgrade={handleUpgrade} onReset={() => setView('landing')} user={user} />}
       {view === 'auth' && <AuthView mode={authMode} setMode={setAuthMode} onAuth={handleAuth} error={error} onClose={() => { setView('landing'); setError('') }} />}
@@ -182,7 +182,7 @@ function Header({ user, onLogin, onSignup, onLogout, onUpgrade, onBlog }) {
 }
 
 // ─── Landing ─────────────────────────────────────────
-function Landing({ onSummarize, loading, error, user }) {
+function Landing({ onSummarize, loading, error, user, notice }) {
   const [url, setUrl] = useState('')
   const [showEmptyError, setShowEmptyError] = useState(false)
 
