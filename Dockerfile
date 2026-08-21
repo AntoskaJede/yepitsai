@@ -19,6 +19,9 @@ RUN cd frontend && npm install
 COPY frontend/ ./frontend/
 RUN cd frontend && npm run build
 
+# Copy root public/ (robots.txt, llms.txt, sitemap.xml) for Express to serve
+COPY public/ ./public/
+
 COPY server/ ./server/
 
 WORKDIR /app/server
