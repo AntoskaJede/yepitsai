@@ -74,7 +74,7 @@ function App() {
           setView('tooLong'); setSummaryData({ duration: data.duration })
         } else {
           // Guard against an empty/partial payload (e.g. backend returns 200 but no summary)
-          const hasContent = data && (data.summary || data.keyTakeaways?.length || data.keyMoments?.length || data.takeaways?.length || data.timestamps?.length)
+          const hasContent = data && (data.summary || data.takeaways?.length || data.timestamps?.length)
           if (!hasContent) {
             setError('We couldn\'t generate a summary for this video. It may be too long for the free plan, or it lacks captions — try a shorter, captioned video, or upgrade to Pro.')
           } else {
@@ -338,11 +338,11 @@ function Landing({ onSummarize, loading, error, user, notice }) {
 
 // ─── Summary Result View ──────────────────────────────
 function SummaryView({ data, onReset }) {
-  const { title, summary, keyTakeaways, keyMoments, videoId, remaining } = data
+  const { title, summary, takeaways, timestamps, videoId, remaining } = data
   const handleExport = (format) => {
     let content = `# ${title}\n\n## Summary\n${summary}\n`
-    if (keyTakeaways?.length) content += `\n## Key Takeaways\n${keyTakeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n`
-    if (keyMoments?.length) content += `\n## Key Moments\n${keyMoments.map(m => `[${m.time}] ${m.label}`).join('\n')}\n`
+    if (takeaways?.length) content += `\n## Key Takeaways\n${takeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n`
+    if (timestamps?.length) content += `\n## Key Moments\n${timestamps.map(m => `[${m.time}] ${m.label}`).join('\n')}\n`
     const blob = new Blob([content], { type: 'text/plain' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -359,11 +359,11 @@ function SummaryView({ data, onReset }) {
           <p className="text-ink-muted leading-relaxed whitespace-pre-line">{summary}</p>
         </div>
       )}
-      {keyTakeaways?.length > 0 && (
+      {takeaways?.length > 0 && (
         <div className="card mb-6">
           <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Key Takeaways</h2>
           <ul className="space-y-2">
-            {keyTakeaways.map((t, i) => (
+            {takeaways.map((t, i) => (
               <li key={i} className="flex gap-2.5 text-ink-muted leading-relaxed items-start">
                 <span className="w-[22px] h-[22px] rounded-md bg-clay-soft flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Icon.Minus className="w-3 h-3 text-clay" />
@@ -374,11 +374,11 @@ function SummaryView({ data, onReset }) {
           </ul>
         </div>
       )}
-      {keyMoments?.length > 0 && (
+      {timestamps?.length > 0 && (
         <div className="card mb-6">
           <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Key Moments</h2>
           <div className="space-y-2">
-            {keyMoments.map((m, i) => (
+            {timestamps.map((m, i) => (
               <a key={i} href={`https://www.youtube.com/watch?v=${videoId}&t=${m.seconds}s`} target="_blank" rel="noopener noreferrer"
                 className="flex gap-3 items-start p-2 -mx-2 rounded-lg hover:bg-cream transition-colors group">
                 <span className="font-mono text-xs font-bold text-clay bg-clay-soft px-2 py-1 rounded-md flex-shrink-0">{m.time}</span>
