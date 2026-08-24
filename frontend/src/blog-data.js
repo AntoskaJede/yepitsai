@@ -601,7 +601,152 @@ For pure YouTube summarization: **YepIts.ai is $1 cheaper per month** for what m
 Both have free tiers that don't require a credit card. Try the same video in both and see which output you actually use.
 
 *This comparison was last updated August 2026. Pricing and features change — verify on each tool's website before deciding.*`
-  },
+  },,
+  {
+    title: 'YepIts.ai vs Recall: YouTube Summarizer or Knowledge Base? (Honest 2026 Comparison)',
+    slug: 'yepits-vs-recall',
+    date: 'August 21, 2026',
+    dateISO: '2026-08-21',
+    excerpt: 'Recall is a powerful AI knowledge base that handles YouTube among other content. YepIts.ai is a focused YouTube summarizer with timestamps. They solve different problems at different price points. Here is the honest comparison.',
+    category: 'Comparison',
+    content: `**If you want to save and chat with everything you watch/read/listen to across formats, Recall is the better choice. If you want fast, focused YouTube summaries with clickable timestamps, YepIts.ai wins.** They look similar on paper but solve different problems. Recall is a knowledge base that includes YouTube summarization; YepIts.ai is a YouTube summarizer that does one thing well.
+
+---
+
+## Quick comparison
+
+| Feature | YepIts.ai | Recall |
+|---|---|---|
+| **Best for** | Quick YouTube summaries | Long-term knowledge base + chat |
+| **Free tier** | 3 summaries/day, ≤15 min videos | 10 total summaries, unlimited read-later storage |
+| **Paid price** | $7/mo (unlimited) | $10/mo yearly or $12/mo monthly |
+| **AI models** | Claude (Anthropic) | ChatGPT, Claude, or Gemini (your choice) |
+| **Output format** | Summary + takeaways + clickable timestamps | Summary + spaced repetition quizzes + knowledge graph |
+| **Setup** | Web app, no install | Browser extension + web app |
+| **Content types** | YouTube only | YouTube, podcasts, PDFs, articles, social posts, anything in browser |
+| **Chat with saved content** | No | Yes (agentic AI search across your entire knowledge base) |
+| **Spaced repetition / quizzes** | No | Yes (auto-generated from summaries) |
+| **Knowledge graph** | No | Yes (auto-connects related summaries) |
+| **Markdown export** | Yes | Yes |
+| **Clickable timestamps** | Yes | No (Recall focuses on the summary text, not video navigation) |
+| **Cross-video chat** | No | Yes (ask questions about everything you have saved) |
+
+---
+
+## Where YepIts.ai wins
+
+### 1. Focused, faster, cheaper for YouTube specifically
+
+YepIts.ai does one thing: summarize YouTube videos with clickable timestamps. The whole UI is built around that workflow. Paste a URL, get a summary, jump to the relevant part of the video. That is it.
+
+Recall does a lot more, which is great if you need it. But if you only want YouTube summaries, you are paying for a knowledge base, chat, quizzes, and a knowledge graph you will not use.
+
+### 2. Clickable timestamps that jump to the video
+
+This is YepIts.ai's killer feature for video content. Every summary includes timestamps that, when clicked, take you to that exact moment in the YouTube video. So if a summary mentions "at minute 14:32 the speaker explains X," you click and you are there.
+
+Recall focuses on the summary text itself, not video navigation. If your goal is to *consume the video efficiently* (skip to the parts that matter), YepIts.ai is the better tool.
+
+### 3. Cheaper
+
+YepIts.ai Pro is **$7/month** for unlimited YouTube summaries. Recall Plus is **$12/month** (or $10/month billed yearly). If YouTube summarization is your main use case, that is a 70% price premium for features you do not need.
+
+### 4. No install required, no account for free tier
+
+YepIts.ai is a web app. Open yepits.ai, paste a URL, get a summary. No extension, no sign-up for the free tier.
+
+Recall requires installing the browser extension to capture content as you browse. You can manually paste URLs into Recall's web app, but the extension is where the magic happens.
+
+### 5. No "summary quota" anxiety on free tier
+
+YepIts.ai free tier is **3 summaries per day** — resets daily, never runs out as long as you pace yourself.
+
+Recall free tier is **10 summaries total, ever** until you pay. So if you are a researcher saving 50 articles and YouTube videos a week, you burn through Recall's free tier in a day.
+
+---
+
+## Where Recall wins
+
+### 1. It is a knowledge base, not just a summarizer
+
+Recall's core value is not the summaries — it is the **searchable, chat-able archive of everything you have saved**. You save YouTube videos, articles, PDFs, podcasts, tweets, and you can later chat with the entire collection.
+
+Imagine: 6 months from now, you remember watching a video about pricing strategies but cannot remember which one. With Recall, you ask: "What did those pricing-strategy videos say about freemium tiers?" and it picks the relevant summaries out of your archive and synthesizes an answer.
+
+YepIts.ai does not do this. Summaries are one-off — once you read it and move on, it is not stored or queryable.
+
+### 2. Spaced repetition for retention
+
+Recall auto-generates quiz cards from your saved content and schedules them using spaced repetition. So if you saved a 2-hour podcast about machine learning, Recall will quiz you on the key concepts over the next weeks.
+
+For students, researchers, and lifelong learners, this is genuinely useful. YepIts.ai does not have this feature.
+
+### 3. Agentic chat with citations
+
+Recall's chat feature does not just regurgitate summaries — it actively searches your knowledge base, picks the relevant pieces, and synthesizes an answer with citations to the original sources.
+
+For serious research workflows, this is a step above what YepIts.ai offers.
+
+### 4. Knowledge graph
+
+Recall automatically connects related summaries in a knowledge graph. Save 5 videos about climate change and a video about ocean acidification — Recall shows you the connections between them.
+
+For some users this is "wow cool," for others it is overwhelming. But it is a different value proposition than a single-video summarizer.
+
+### 5. Spans more content types
+
+Recall works on YouTube, podcasts, PDFs, articles, tweets, Reddit threads, and anything you can view in a browser via the extension. YepIts.ai is YouTube-only.
+
+If your workflow involves saving and summarizing across formats, Recall covers more ground.
+
+---
+
+## Pricing compared
+
+| Plan | YepIts.ai | Recall |
+|---|---|---|
+| **Free** | 3 summaries/day, ≤15 min videos | 10 total summaries ever, unlimited read-later storage |
+| **Paid monthly** | $7/mo unlimited | $12/mo unlimited |
+| **Paid yearly** | (no annual discount) | $10/mo billed yearly ($120/yr) |
+
+For pure YouTube summarization: **YepIts.ai is $5-7 cheaper per month** for the same core feature (unlimited YouTube summaries).
+
+For full knowledge-base workflow: **Recall's $120/yr is reasonable** for what you get.
+
+---
+
+## Who should use which?
+
+**Pick YepIts.ai if**:
+- Your main goal is "summarize this YouTube video quickly with timestamps so I can decide whether to watch"
+- You do not need to save or revisit summaries later
+- You want unlimited usage at the lowest price
+- You do not need cross-format support
+- You mainly want clickable navigation back to the source video
+
+**Pick Recall if**:
+- You are building a personal knowledge base across many content types (YouTube, articles, podcasts, PDFs)
+- You want to chat with everything you have saved
+- You want spaced repetition quizzes for retention
+- You are a student or researcher who needs to revisit material over weeks/months
+- You are willing to pay $10-12/mo for the extra workflow features
+
+**Use both if**:
+- Use YepIts.ai for *discovering* which YouTube videos are worth deep study (fast triage)
+- Use Recall for *retaining* what you learned from the videos you decided to keep (slow burn)
+
+---
+
+## Try them both
+
+- YepIts.ai: https://yepits.ai (free, no sign-up, unlimited web access)
+- Recall: https://www.recall.so (free tier: 10 summaries + unlimited read-later)
+
+Both have free tiers that do not require a credit card. Try the same video in both and see which output you actually use.
+
+*This comparison was last updated August 2026. Pricing and features change — verify on each tool's website before deciding.*`
+  }
+]
 ]
 
 // Sort by date descending (newest first)
