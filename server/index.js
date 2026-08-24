@@ -638,16 +638,21 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
       const anonIp = req.user.id.slice('anon_'.length);
       incrementAnonUsage(anonIp);
       req.user.summaries_used += 1;
+      req.user.summaries_reset_at = getAnonUsage(anonIp).summaries_reset_at;
     } else {
       // Authenticated user — increment in DB
       incrementUsage(req.user.id);
       addSummary(req.user.id, videoId, meta.title);
     }
 
+    // Recompute `usage` after the increment so the response reflects the
+    // post-request counter for both anon and authenticated users.
+    const updatedUsage = checkUsage(req.user);
+
     res.json({
       title: meta.title, channel: meta.channel, duration: durationMinutes, videoId,
       summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps,
-      remaining: usage.remaining - 1, limit: usage.limit,
+      remaining: updatedUsage.remaining, limit: usage.limit,
     });
   } catch (err) {
     console.error('Summarize error:', err);
