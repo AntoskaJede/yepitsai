@@ -14,7 +14,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   db, createUser, getUserByEmail, getUserById, updateUserPlan,
-  incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats
+  incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats,
+  getCachedSummary, setCachedSummary, getAnonUsage, incrementAnonUsage,
 } from './db.js';
 
 dotenv.config();
@@ -41,26 +42,13 @@ const resend = process.env.RESEND_API_KEY
 
 const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || '';
 const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || '';
-const FROM_EMAIL = 'YepIts.ai <pava@yepits.ai>';
-const APP_URL = process.env.NODE_ENV === 'production' ? 'https://yepits.ai' : 'http://localhost:5173';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'YepIts.ai <pava@yepits.ai>';
+const APP_URL = process.env.APP_URL || (process.env.NODE_ENV === 'production' ? 'https://yepits.ai' : 'http://localhost:5173');
 
-// In-memory cache for summaries (videoId -> summary data)
-// In production, this should use Redis, but for MVP this works
-const summaryCache = new Map();
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-function getSummaryFromCache(videoId) {
-  const cached = summaryCache.get(videoId);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-  summaryCache.delete(videoId);
-  return null;
-}
-
-function setSummaryCache(videoId, data) {
-  summaryCache.set(videoId, { data, timestamp: Date.now() });
-}
+// Cache and usage tracking now live in SQLite (see db.js) so they
+// survive server restarts and redeploys. The old in-memory Map was lost
+// every time the process restarted, which meant popular videos got
+// re-summarized for free on every deploy and the anon 3/day limit reset.
 
 // Ensure /data directory exists for SQLite
 try { fs.mkdirSync('/data', { recursive: true }); } catch {}
@@ -205,14 +193,15 @@ function optionalAuth(req, res, next) {
     } catch {}
   }
 
-  // Anonymous user — use IP for rate limiting
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  // Anonymous user — load balance from SQLite (survives restarts)
+  const anonIp = req.ip || req.connection.remoteAddress || 'unknown';
+  const anonState = getAnonUsage(anonIp);
   req.user = {
-    id: `anon_${ip}`,
+    id: `anon_${anonIp}`,
     email: null,
     plan: 'free',
-    summaries_used: 0,
-    summary_reset_date: new Date().toISOString().split('T')[0],
+    summaries_used: anonState.summaries_used,
+    summaries_reset_at: anonState.summaries_reset_at,
   };
   next();
 }
@@ -593,7 +582,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     }
 
     // Check cache first — massive cost savings!
-    const cached = getSummaryFromCache(videoId);
+    const cached = getCachedSummary(videoId);
     if (cached) {
       return res.json({
         title: cached.title, channel: cached.channel, duration: cached.duration, videoId,
@@ -641,12 +630,14 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     ]);
 
     // Cache the summary for future requests
-    setSummaryCache(videoId, { title: meta.title, channel: meta.channel, duration: durationMinutes, summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps });
+    setCachedSummary(videoId, { title: meta.title, channel: meta.channel, duration: durationMinutes, summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps });
 
     // Only increment usage AFTER successful summary
     if (req.user.id.startsWith('anon_')) {
-      // Anonymous user — increment in session, no DB
-      req.user.summaries_used = (req.user.summaries_used || 0) + 1;
+      // Anonymous user — persist the counter to SQLite so it survives restarts
+      const anonIp = req.user.id.slice('anon_'.length);
+      incrementAnonUsage(anonIp);
+      req.user.summaries_used += 1;
     } else {
       // Authenticated user — increment in DB
       incrementUsage(req.user.id);
@@ -719,8 +710,8 @@ app.post('/api/compare', optionalAuth, async (req, res) => {
     if (!videoId1 || !videoId2) return res.status(400).json({ error: 'Invalid YouTube URLs.' });
 
     // Get both summaries (from cache or generate)
-    let summary1 = getSummaryFromCache(videoId1);
-    let summary2 = getSummaryFromCache(videoId2);
+    let summary1 = getCachedSummary(videoId1);
+    let summary2 = getCachedSummary(videoId2);
 
     if (!summary1) {
       const transcript1 = await getTranscript(videoId1);
@@ -732,7 +723,7 @@ app.post('/api/compare', optionalAuth, async (req, res) => {
       const meta1 = await getVideoMeta(videoId1);
       const sum1 = await summarizeWithClaude(text1, videoId1);
       summary1 = { title: meta1.title, channel: meta1.channel, duration: getDurationFromTranscript(transcript1), ...sum1 };
-      setSummaryCache(videoId1, summary1);
+      setCachedSummary(videoId1, summary1);
     }
 
     if (!summary2) {
@@ -745,7 +736,7 @@ app.post('/api/compare', optionalAuth, async (req, res) => {
       const meta2 = await getVideoMeta(videoId2);
       const sum2 = await summarizeWithClaude(text2, videoId2);
       summary2 = { title: meta2.title, channel: meta2.channel, duration: getDurationFromTranscript(transcript2), ...sum2 };
-      setSummaryCache(videoId2, summary2);
+      setCachedSummary(videoId2, summary2);
     }
 
     // Calculate similarity (simple: count matching takeaways)
