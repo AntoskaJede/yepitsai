@@ -470,7 +470,138 @@ The simplest option — paste a URL, get a summary. No signup, no limits.
 ---
 
 *This comparison was last updated June 2026. Pricing and features change — verify on each tool's website before deciding.*`
-  }
+  },
+  {
+    title: 'YepIts.ai vs Glasp: Which YouTube Summarizer Is Actually Better in 2026?',
+    slug: 'yepits-vs-glasp',
+    date: 'August 21, 2026',
+    dateISO: '2026-08-21',
+    excerpt: 'Glasp is a solid free YouTube summarizer with multi-LLM support and transcript highlighting. YepIts.ai is faster, cheaper at scale, and built for whole-video comprehension rather than just snippets. Here\'s how they actually differ.',
+    category: 'Comparison',
+    content: `**If you want transcript highlighting and Notion/Obsidian export, Glasp is the better choice. If you want full-video AI summaries with timestamps at a low price, YepIts.ai wins.** Both are real, working tools for getting value out of long YouTube videos — but they're built for different workflows. This guide breaks down where each one actually wins, so you can pick the right one for your situation.
+
+---
+
+## Quick comparison
+
+| Feature | YepIts.ai | Glasp |
+|---|---|---|
+| **Best for** | Full-video summaries | Highlighting & saving snippets |
+| **Free tier** | 3 summaries/day, up to 15 min | Unlimited highlights, daily summary limits |
+| **Paid price** | $7/mo (unlimited) | $8/mo (Pro) |
+| **AI models** | Claude (Anthropic) | ChatGPT, Claude, Gemini, Mistral |
+| **Output format** | Summary + takeaways + clickable timestamps | Summary + highlighted transcript + saved notes |
+| **Setup** | Web app, no install | Chrome/Safari extension + web tool |
+| **Transcript** | Full transcript available | Interactive highlighting + full transcript |
+| **Export** | Markdown / plain text | Notion, Obsidian, Roam Research, Markdown |
+| **Chrome extension** | Not yet | Yes (also Safari, Firefox, Edge, Brave) |
+| **Web app (no install)** | Yes (yepits.ai) | Yes (glasp.co/youtube-summary) |
+| **Custom prompts** | No | Yes (Pro) |
+| **PDF / web article summary** | No | Yes (Pro) |
+
+---
+
+## Where YepIts.ai wins
+
+### 1. Cleaner, more comprehensive summaries
+
+YepIts.ai is built around the **whole video** — it produces a 2-3 paragraph summary, a bulleted key-takeaways list, and clickable timestamps that jump to the relevant section. The output is designed to be **the entire video, condensed** — you can read the summary and have gotten the same value as watching the video.
+
+Glasp's summary output is shorter and more focused on the transcript itself. It's optimized for **highlighting and saving** rather than consuming the summary as a substitute for the video.
+
+If your goal is "I don't have time to watch this 40-minute podcast, just tell me what it said," YepIts.ai wins.
+
+### 2. Cheaper at scale
+
+YepIts.ai Pro is **$7/month** for unlimited summaries, no per-video length restrictions. Glasp Pro is **$8/month** for unlimited summaries + multi-LLM support + PDF/article summary.
+
+If you summarize 5+ videos per week, the price difference adds up. YepIts.ai is $12 cheaper per year for the same core feature (unlimited YouTube summaries).
+
+### 3. No install required
+
+YepIts.ai is a pure web app. Open yepits.ai, paste a URL, get a summary. No extension, no sign-up needed for the free tier.
+
+Glasp's full feature set requires installing the Chrome extension. The web tool at glasp.co/youtube-summary works without install but is more limited than the extension.
+
+If you don't want another browser extension slowing things down, YepIts.ai is the path of least friction.
+
+### 4. Claude-native quality
+
+YepIts.ai uses **Claude (Anthropic) for every summary** — no model selection, no surprises. You get the same high-quality output every time.
+
+Glasp lets you pick from ChatGPT, Claude, Gemini, or Mistral. That's flexibility, but it also means summary quality varies based on your model choice and which model is fastest when you submit. Some users find this consistency vs. variability to be a meaningful difference.
+
+---
+
+## Where Glasp wins
+
+### 1. Transcript highlighting + notes
+
+This is Glasp's killer feature. You can highlight any part of the transcript and add your own notes — like highlighting a physical book. Your highlights sync across devices and can be exported to Notion, Obsidian, or Roam Research.
+
+If you're doing research or studying for an exam, this is genuinely useful. YepIts.ai gives you the summary; Glasp gives you the **annotated transcript**.
+
+### 2. Multi-LLM choice
+
+If you prefer Gemini or Mistral over Claude for some reason, Glasp lets you pick. Some content types might summarize better with different models (e.g., technical content with one, casual content with another).
+
+### 3. PDF and web article summary
+
+Glasp Pro can summarize PDFs and web articles, not just YouTube. YepIts.ai is YouTube-only.
+
+If you want one tool that handles all your reading and watching, Glasp covers more ground.
+
+### 4. Browser extension
+
+Glasp's Chrome extension gives you a side panel inside YouTube itself — you don't have to leave the page to get the summary. YepIts.ai is web-app-only.
+
+### 5. Custom prompts (Pro)
+
+Glasp lets you customize the system prompt — useful for tailoring summaries to your specific use case (e.g., "summarize for a 5-year-old" or "focus on the technical implementation details").
+
+---
+
+## Pricing compared
+
+| Plan | YepIts.ai | Glasp |
+|---|---|---|
+| **Free** | 3 summaries/day, ≤15 min videos | Unlimited highlights, limited daily summaries |
+| **Paid** | $7/mo unlimited | $8/mo unlimited + multi-LLM + PDF/article |
+
+For pure YouTube summarization: **YepIts.ai is $1 cheaper per month** for what most users actually need.
+
+---
+
+## Who should use which?
+
+**Pick YepIts.ai if**:
+- Your main goal is "tell me what this video said so I don't have to watch it"
+- You summarize 5+ videos per week and want unlimited at the lowest price
+- You don't want to install a browser extension
+- You value consistent, high-quality summaries over model variety
+- You mainly watch long-form content (lectures, podcasts, interviews)
+
+**Pick Glasp if**:
+- You're doing active research and want to highlight + annotate transcripts
+- You want to summarize more than just YouTube (PDFs, articles)
+- You want to choose between ChatGPT, Claude, Gemini, or Mistral
+- You live inside your browser extension ecosystem
+- You use Notion/Obsidian/Roam heavily for note-taking
+
+**Use both if**:
+- You're a researcher or student: Glasp for highlights/notes during study, YepIts.ai for the full comprehension summary before deciding what to deep-dive on
+
+---
+
+## Try them both
+
+- YepIts.ai: https://yepits.ai (free, no sign-up)
+- Glasp: https://glasp.co/youtube-summary (free web tool + extension)
+
+Both have free tiers that don't require a credit card. Try the same video in both and see which output you actually use.
+
+*This comparison was last updated August 2026. Pricing and features change — verify on each tool's website before deciding.*`
+  },
 ]
 
 // Sort by date descending (newest first)
