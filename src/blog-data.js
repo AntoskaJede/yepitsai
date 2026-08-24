@@ -747,7 +747,6 @@ Both have free tiers that do not require a credit card. Try the same video in bo
 *This comparison was last updated August 2026. Pricing and features change — verify on each tool's website before deciding.*`
   }
 ]
-]
 
 // Sort by date descending (newest first)
 blogPosts.sort((a, b) => new Date(b.dateISO) - new Date(a.dateISO))
