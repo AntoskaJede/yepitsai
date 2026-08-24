@@ -1,7 +1,10 @@
 FROM node:20-slim
 
-# Install build tools for better-sqlite3
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Install build tools for better-sqlite3 + python3 pip (for yt-dlp transcript fallback)
+RUN apt-get update && apt-get install -y python3 python3-pip make g++ && rm -rf /var/lib/apt/lists/*
+
+# Install yt-dlp (YouTube transcript fallback — used when InnerTube + library both fail)
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 # Create data directory for SQLite
 RUN mkdir -p /data

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import https from 'https';
+import http from 'http';
+import { spawn } from 'child_process';
 import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 import bcrypt from 'bcryptjs';
@@ -503,7 +505,7 @@ async function getTranscript(videoId) {
     }
   }
 
-  // Last resort: youtube-transcript library
+  // Penultimate fallback: youtube-transcript library (cheap, no subprocess)
   try {
     const { YoutubeTranscript } = await import('youtube-transcript');
     const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
@@ -515,7 +517,115 @@ async function getTranscript(videoId) {
     console.log('Library failed:', e.message);
   }
 
+  // Final fallback: yt-dlp (Python binary, bundled in Dockerfile)
+  // yt-dlp has its own methods for getting subs and works when InnerTube blocks us.
+  const ytDlpTranscript = await getTranscriptViaYtdlp(videoId);
+  if (ytDlpTranscript?.length > 0) {
+    console.log(`Transcript: yt-dlp fallback = ${ytDlpTranscript.length} segments`);
+    return ytDlpTranscript;
+  }
+
   return null;
+}
+
+// ============================================================
+// yt-dlp transcript fallback (called when InnerTube + library both fail)
+// Returns same shape as getTranscript(): array of { text, offset, duration }
+// or null on any failure. 60s timeout.
+// ============================================================
+function getTranscriptViaYtdlp(videoId) {
+  return new Promise((resolve) => {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    // --skip-download: subs only, no video file
+    // --write-auto-subs: include auto-generated captions
+    // --convert-subs vtt: parse the output as webvtt
+    // --no-warnings: don't spam stderr
+    // -o -: write to stdout (we read JSON3 directly via --dump-json but vtt is simpler)
+    // Actually we use --dump-json which gives us a single JSON blob with subtitle URLs + auto-subs
+    const args = [
+      '--skip-download',
+      '--no-warnings',
+      '--no-playlist',
+      '--sub-lang', 'en.*,en',
+      '--write-auto-subs',
+      '--dump-json',
+      url,
+    ];
+
+    const proc = spawn('yt-dlp', args, { timeout: 60_000 });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (d) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        console.log(`yt-dlp failed (exit ${code}): ${stderr.slice(0, 200)}`);
+        return resolve(null);
+      }
+      try {
+        // --dump-json output is a JSON blob per line (one per video).
+        // Find the entry for our videoId and parse its `subtitles` and `automatic_captions` fields.
+        const lines = stdout.split('\n').filter(Boolean);
+        let parsed = null;
+        for (const line of lines) {
+          try {
+            const obj = JSON.parse(line);
+            if (obj && obj.id === videoId) { parsed = obj; break; }
+          } catch {}
+        }
+        if (!parsed) return resolve(null);
+
+        // Pick the first English subtitle URL from automatic_captions (or subtitles).
+        const captions = parsed.automatic_captions || parsed.subtitles || {};
+        let subUrl = null;
+        for (const lang of Object.keys(captions)) {
+          if (!lang.startsWith('en')) continue;
+          const formats = captions[lang] || [];
+          const vttOrJson3 = formats.find((f) => f.ext === 'vtt' || f.ext === 'json3');
+          if (vttOrJson3) { subUrl = vttOrJson3.url; break; }
+        }
+        if (!subUrl) return resolve(null);
+
+        // Fetch the actual subtitle text.
+        fetchUrl(subUrl).then((raw) => {
+          // VTT format: lines like "00:00:01.500 --> 00:00:04.000", then text.
+          const segments = [];
+          const blocks = raw.split(/\r?\n\r?\n/);
+          for (const block of blocks) {
+            const lines = block.split('\n');
+            const timeLine = lines.find((l) => l.includes('-->'));
+            if (!timeLine) continue;
+            const m = timeLine.match(/(\d{2}):(\d{2}):(\d{2}\.\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}\.\d{3})/);
+            if (!m) continue;
+            const offsetMs =
+              parseInt(m[1]) * 3600_000 +
+              parseInt(m[2]) * 60_000 +
+              parseFloat(m[3]) * 1000;
+            const endMs =
+              parseInt(m[4]) * 3600_000 +
+              parseInt(m[5]) * 60_000 +
+              parseFloat(m[6]) * 1000;
+            const text = lines.slice(lines.indexOf(timeLine) + 1)
+              .filter((l) => l && !/^WEBVTT/.test(l) && !/^NOTE/.test(l))
+              .join(' ')
+              .replace(/<[^>]+>/g, '')
+              .trim();
+            if (text) segments.push({ text, offset: Math.floor(offsetMs), duration: Math.floor(endMs - offsetMs) });
+          }
+          resolve(segments);
+        }).catch(() => resolve(null));
+      } catch (e) {
+        console.log('yt-dlp parse failed:', e.message);
+        resolve(null);
+      }
+    });
+
+    proc.on('error', (e) => {
+      console.log('yt-dlp spawn error:', e.message);
+      resolve(null);
+    });
+  });
 }
 
 function getDurationFromTranscript(transcript) {
