@@ -745,6 +745,140 @@ For full knowledge-base workflow: **Recall's $120/yr is reasonable** for what yo
 Both have free tiers that do not require a credit card. Try the same video in both and see which output you actually use.
 
 *This comparison was last updated August 2026. Pricing and features change — verify on each tool's website before deciding.*`
+  },
+  {
+    title: 'YepIts.ai vs YouTube\'s Built-in AI: When Do You Actually Need a Third-Party Tool?',
+    slug: 'yepits-vs-youtube-built-in-ai',
+    date: 'August 21, 2026',
+    dateISO: '2026-08-21',
+    excerpt: 'YouTube has its own AI features now — comment summaries, "Ask" button, AI chapters. Are they enough? Or do you still need YepIts.ai? Honest comparison based on what each tool actually does well.',
+    category: 'Comparison',
+    content: `**YouTube\'s built-in AI is great for what it does — quick answers about a video you\'re already watching. YepIts.ai is built for a different use case: getting the value of a video *without* watching it.** They overlap in name but not in purpose. Here is an honest breakdown of where each one wins.
+
+---
+
+## Quick comparison
+
+| Feature | YepIts.ai | YouTube Built-in AI |
+|---|---|---|
+| **Best for** | Deciding whether to watch + extracting the value | Quick answers while you are watching |
+| **Where it runs** | yepits.ai (separate site) | Inside YouTube itself |
+| **Trigger** | You paste the URL | You click "Ask" or "Summarize" on a video |
+| **Output format** | Full summary + takeaways + clickable timestamps | Short paragraph answer to your specific question |
+| **Works without watching** | Yes (the whole point) | No (you need the video open in YouTube) |
+| **Clickable timestamps** | Yes | Sometimes (AI chapters) |
+| **Saves summaries** | No (one-off) | No (built into YouTube session only) |
+| **Works on free YouTube** | Yes | Partially (some features require YouTube Premium) |
+| **Works on age-restricted videos** | Yes | Limited |
+| **Length limit** | Free: 15 min · Pro: unlimited | Whatever the video is |
+| **Cost** | Free / $7/mo Pro | Free with YouTube Premium only for some features |
+
+---
+
+## Where YouTube\'s built-in AI wins
+
+### 1. It is already there
+
+No need to leave YouTube. Click "Ask" on a video and get a summary in seconds. Zero friction, zero new tool to learn, zero signup.
+
+### 2. It is conversational
+
+YouTube\'s AI answers *specific questions* about the video you are watching. "What did the speaker say about pricing?" gets you a focused answer with a citation back to the video at that timestamp.
+
+YepIts.ai gives you the full summary up front — useful, but not conversational.
+
+### 3. It is integrated with playback
+
+YouTube\'s AI knows what timestamp you are at and can answer contextually. You can ask "what did he just say about X?" and it understands the video timeline.
+
+YepIts.ai is not integrated with YouTube playback at all — it operates on the video as a whole, separately.
+
+### 4. AI chapters auto-generated
+
+YouTube now auto-generates chapter markers using AI. This gives you the same jump-to-section navigation YepIts.ai offers, for free, inside YouTube.
+
+### 5. No new account, no new billing
+
+For someone who already has YouTube Premium, the AI features are bundled in. No extra signup or subscription needed.
+
+---
+
+## Where YepIts.ai wins
+
+### 1. The whole point: skip watching entirely
+
+YouTube\'s AI assumes you are *already watching the video*. It is a productivity tool *during* watching.
+
+YepIts.ai is built for the opposite case: you have 50 unwatched videos, you do not have time to watch them, you want to decide which are worth 30 minutes and which can be skipped. You paste the URL, get the summary in 10 seconds, decide what to do.
+
+If your workflow is "I want to know what this video said so I don\'t have to watch it," YepIts.ai is purpose-built for that. YouTube\'s AI is not.
+
+### 2. Clickable timestamps that work for the whole video
+
+YepIts.ai\'s timestamps are clickable links back to the YouTube video at the exact moment. So if you read a takeaway, you can jump to that moment in the video and watch 30 seconds of context instead of the full video.
+
+YouTube\'s AI chapters are similar, but they only appear *while you are in YouTube* watching. You cannot see them in YepIts.ai and jump out to YouTube at a specific time.
+
+### 3. Works on videos without captions, age-restricted, or in any language
+
+YepIts.ai uses the YouTube transcript API directly, which works on most videos. YouTube\'s AI may not work on age-restricted, member-only, or some non-captioned videos.
+
+### 4. Standalone deliverable
+
+A YepIts.ai summary is a Markdown/plain text document you can copy, paste, share, email, save in Notion. YouTube\'s AI summary is locked inside YouTube — you cannot easily export it.
+
+### 5. No Premium paywall
+
+Some YouTube AI features require YouTube Premium ($13.99/mo). YepIts.ai\'s free tier gives you 3 summaries/day, forever. Pro is $7/mo if you need more — still cheaper than YouTube Premium.
+
+### 6. Length flexibility
+
+YouTube\'s AI works on whatever video you click it on — but the summary quality degrades on very long videos (3+ hours). YepIts.ai Pro handles any length and the output stays structured.
+
+---
+
+## Pricing compared
+
+| Plan | YepIts.ai | YouTube AI |
+|---|---|---|
+| **Free tier** | 3 summaries/day, videos ≤15 min | Limited AI features, requires YouTube Premium for some |
+| **Paid** | $7/mo unlimited | YouTube Premium: $13.99/mo (covers all Premium features, not just AI) |
+
+If you already pay for YouTube Premium: the AI is included, but it still does not solve the "summarize videos I am NOT watching" problem.
+
+If you do not pay for YouTube Premium: YepIts.ai is cheaper than YouTube Premium AND solves a different problem.
+
+---
+
+## Who should use which?
+
+**Use YouTube\'s built-in AI if**:
+- You are already watching a video and have a specific question
+- You want AI chapters for navigation while watching
+- You are already paying for YouTube Premium
+- Your use case is "during watching"
+
+**Use YepIts.ai if**:
+- You have a watch-later backlog and want to triage it efficiently
+- You want to extract value from videos without watching them
+- You want a shareable/exportable summary
+- You want timestamps you can click to jump straight to the relevant moment
+- Your use case is "instead of watching"
+
+**Use both**:
+- YouTube AI for "what did he just say?" while watching
+- YepIts.ai for "what is this video about?" before deciding to watch
+
+---
+
+## Try them
+
+- YepIts.ai: https://yepits.ai (free, no sign-up, 3 summaries/day)
+- YouTube AI: open any video on YouTube and click the "Ask" button under the video (Premium required for some features)
+
+YouTube\'s AI is free if you already pay for Premium. YepIts.ai is free regardless. Try the same video in both and see which output you actually use.
+
+*This comparison was last updated August 2026. Pricing and features change — verify on each tool\'s website before deciding.*`
   }
 ]
 

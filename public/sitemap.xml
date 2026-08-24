@@ -36,6 +36,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://yepits.ai/blog/yepits-vs-youtube-built-in-ai</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://yepits.ai/blog/best-youtube-summarizer-2026</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
