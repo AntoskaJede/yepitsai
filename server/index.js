@@ -18,6 +18,7 @@ import {
   db, createUser, getUserByEmail, getUserById, updateUserPlan,
   incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats,
   getCachedSummary, setCachedSummary, getAnonUsage, incrementAnonUsage,
+  getCachedBlogPost, setCachedBlogPost,
 } from './db.js';
 
 dotenv.config();
@@ -826,8 +827,8 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
 
 // ============================================================
 // POST /api/blog — convert a YouTube video into a structured blog post
-// Phase 1 Tasks 1+2: route + Claude prompt wired up.
-// Phase 1 Tasks 3-5 still pending: blog_posts table, blog_cache, TIERS.blog.
+// Phase 1 Tasks 1-4: route + Claude prompt + blog_posts history + blog_cache.
+// Phase 1 Task 5 still pending: TIERS.blog wiring + usage counters.
 // ============================================================
 app.post('/api/blog', optionalAuth, async (req, res) => {
   try {
@@ -837,11 +838,40 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
     const videoId = extractVideoId(url);
     if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
-    // Hardcoded limits for Tasks 1-2 — replaced by TIERS.blog in Task 5.
+    // Hardcoded limits for Tasks 1-4 — replaced by TIERS.blog in Task 5.
     const usage = req.user.plan === 'pro'
       ? { allowed: true, remaining: Infinity, limit: Infinity }
       : { allowed: true, remaining: 1, limit: 1 };
     const maxLengthMinutes = req.user.plan === 'pro' ? Infinity : 30;
+
+    // Cache check first — popular videos don't re-generate on every request.
+    // Cached duration drives tier gating, so a free user still gets proRequired
+    // even on a cache hit if the cached video is over their limit.
+    const cached = getCachedBlogPost(videoId);
+    if (cached) {
+      if (cached.duration > maxLengthMinutes) {
+        return res.json({
+          proRequired: true,
+          duration: cached.duration,
+          title: cached.title,
+          channel: cached.channel,
+          videoId,
+          tier: req.user.plan,
+          maxLength: maxLengthMinutes,
+          cached: true,
+        });
+      }
+      return res.json({
+        title: cached.title,
+        channel: cached.channel,
+        videoId,
+        duration: cached.duration,
+        blogPost: cached.blogPost,
+        remaining: usage.remaining,
+        limit: usage.limit,
+        cached: true,
+      });
+    }
 
     const transcript = await getTranscript(videoId);
     if (!transcript) {
@@ -883,6 +913,14 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
         error: 'We could not generate a blog post for this video right now. Please try again or try a different video.',
       });
     }
+
+    // Persist to cache so repeat requests for the same video are free.
+    setCachedBlogPost(videoId, {
+      title: meta.title,
+      channel: meta.channel,
+      duration: durationMinutes,
+      blogPost,
+    });
 
     res.json({
       title: meta.title,

@@ -75,6 +75,17 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_blog_posts_user_created
     ON blog_posts (user_id, created_at DESC);
+
+  -- Blog generation cache (so popular videos don't re-generate on every request).
+  -- Survives redeploys. videoId is unique. Same TTL shape as summary_cache.
+  CREATE TABLE IF NOT EXISTS blog_cache (
+    video_id TEXT PRIMARY KEY,
+    title TEXT,
+    channel TEXT,
+    duration INTEGER,
+    blog_json TEXT NOT NULL,
+    cached_at INTEGER NOT NULL
+  );
 `);
 
 // Add columns if they don't exist (for existing DBs)
@@ -227,6 +238,46 @@ export function getBlogPost(id, userId) {
 
 export function countBlogPosts() {
   return db.prepare('SELECT COUNT(*) as count FROM blog_posts').get().count;
+}
+
+// ============================================================
+// Blog generation cache (7-day TTL, SQLite-backed, survives redeploys)
+// ============================================================
+const BLOG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+export function getCachedBlogPost(videoId) {
+  const row = db.prepare('SELECT * FROM blog_cache WHERE video_id = ?').get(videoId);
+  if (!row) return null;
+  if (Date.now() - row.cached_at > BLOG_CACHE_TTL_MS) {
+    db.prepare('DELETE FROM blog_cache WHERE video_id = ?').run(videoId);
+    return null;
+  }
+  return {
+    title: row.title,
+    channel: row.channel,
+    duration: row.duration,
+    blogPost: JSON.parse(row.blog_json),
+  };
+}
+
+export function setCachedBlogPost(videoId, data) {
+  db.prepare(`
+    INSERT INTO blog_cache (video_id, title, channel, duration, blog_json, cached_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(video_id) DO UPDATE SET
+      title = excluded.title,
+      channel = excluded.channel,
+      duration = excluded.duration,
+      blog_json = excluded.blog_json,
+      cached_at = excluded.cached_at
+  `).run(
+    videoId,
+    data.title || null,
+    data.channel || null,
+    data.duration || null,
+    JSON.stringify(data.blogPost),
+    Date.now()
+  );
 }
 
 export { db };
