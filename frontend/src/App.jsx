@@ -9,6 +9,7 @@ function App() {
   const [view, setView] = useState('landing')
   const [blogSlug, setBlogSlug] = useState('')
   const [summaryData, setSummaryData] = useState(null)
+  const [blogResult, setBlogResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -108,6 +109,7 @@ function App() {
 
   const navigateToBlogPost = (slug) => { setBlogSlug(slug); setView('blog-post'); window.scrollTo({ top: 0 }) }
   const navigateToBlog = () => { setView('blog'); window.scrollTo({ top: 0 }) }
+  const navigateToBlogResult = (data) => { setBlogResult(data); setView('blog-result'); window.scrollTo({ top: 0 }) }
 
   return (
     <div className="min-h-screen">
@@ -128,6 +130,7 @@ function App() {
       {view === 'privacy' && <PrivacyView />}
       {view === 'blog' && <BlogList onNavigate={navigateToBlogPost} />}
       {view === 'blog-post' && <BlogPost slug={blogSlug} onNavigate={(slug) => slug === 'blog' ? navigateToBlog() : navigateToBlogPost(slug)} />}
+      {view === 'blog-result' && blogResult && <BlogResult data={blogResult} onReset={() => setView('landing')} />}
       <Footer onNavigate={setView} />
     </div>
   )
@@ -598,6 +601,29 @@ function PrivacyView() {
       </div>
     </div>
   )
+}
+
+// ─── Blog Result View (Phase 2 Task 1 stub) ──────────
+// Phase 2 Task 2 replaces this stub with the full renderer:
+// title, metaDescription with copy button, sections, FAQ with
+// collapsible answers, conclusion. For now this confirms the view
+// is wired into the router and renders the documented data shape.
+function BlogResult({ data, onReset }) {
+  const { title, channel, videoId, duration, blogPost } = data || {};
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-10">
+      <h1 className="text-xl font-bold text-ink mb-2">{title || 'Blog post'}</h1>
+      <p className="text-sm text-ink-faint mb-6">
+        {channel ? `${channel} · ` : ''}{duration} min · video {videoId}
+      </p>
+      <pre className="card text-xs whitespace-pre-wrap text-ink-muted overflow-auto">
+        {JSON.stringify(blogPost, null, 2)}
+      </pre>
+      <div className="text-center mt-6">
+        <button onClick={onReset} className="btn-secondary">Convert another video</button>
+      </div>
+    </div>
+  );
 }
 
 export default App
