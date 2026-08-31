@@ -144,7 +144,16 @@ function App() {
     <div className="min-h-screen">
       <Header user={user} onLogin={() => { setAuthMode('login'); setView('auth') }} onSignup={() => { setAuthMode('signup'); setView('auth') }} onLogout={handleLogout} onUpgrade={handleUpgrade} onBlog={navigateToBlog} />
 
-      {view === 'landing' && <Landing onSummarize={handleSummarize} loading={loading} error={error} user={user} notice={notice} />}
+      {view === 'landing' && (
+        <Landing
+          onSummarize={handleSummarize}
+          onConvertToBlog={handleConvertToBlog}
+          loading={loading}
+          error={error}
+          user={user}
+          notice={notice}
+        />
+      )}
       {view === 'result' && summaryData && (
         <SummaryView
           data={summaryData}
@@ -221,14 +230,16 @@ function Header({ user, onLogin, onSignup, onLogout, onUpgrade, onBlog }) {
 }
 
 // ─── Landing ─────────────────────────────────────────
-function Landing({ onSummarize, loading, error, user, notice }) {
+function Landing({ onSummarize, onConvertToBlog, loading, error, user, notice }) {
   const [url, setUrl] = useState('')
   const [showEmptyError, setShowEmptyError] = useState(false)
+  const [mode, setMode] = useState('summarize') // 'summarize' | 'blog'
 
   const submit = (e) => {
     e.preventDefault()
     if (!url.trim()) { setShowEmptyError(true); setTimeout(() => setShowEmptyError(false), 2000); return }
-    onSummarize(url.trim())
+    if (mode === 'blog') onConvertToBlog(url.trim())
+    else onSummarize(url.trim())
   }
 
   return (
@@ -261,7 +272,11 @@ function Landing({ onSummarize, loading, error, user, notice }) {
             autoFocus
           />
           <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 whitespace-nowrap">
-            {loading ? 'Summarizing...' : <>Summarize <Icon.Arrow className="w-4 h-4" /></>}
+            {loading
+              ? (mode === 'blog' ? 'Generating blog post...' : 'Summarizing...')
+              : (mode === 'blog'
+                  ? <>Convert to blog post <Icon.Arrow className="w-4 h-4" /></>
+                  : <>Summarize <Icon.Arrow className="w-4 h-4" /></>)}
           </button>
         </form>
 
@@ -269,13 +284,28 @@ function Landing({ onSummarize, loading, error, user, notice }) {
 
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-ink-faint">
           <span className="w-2 h-2 rounded-full bg-moss" />
-          Free — 3 summaries/day. No account needed.
+          {mode === 'summarize'
+            ? 'Free — 3 summaries/day. No account needed.'
+            : 'Free — 1 blog post per day. Pro: unlimited.'}
         </div>
 
         <button onClick={() => { setUrl('https://www.youtube.com/watch?v=8jPQjjsBbIc'); onSummarize('https://www.youtube.com/watch?v=8jPQjjsBbIc'); }}
           className="mt-3 block mx-auto text-sm text-ink-faint hover:text-clay transition-colors underline">
           or try with a TED talk →
         </button>
+
+        {/* Secondary CTA: try the blog converter */}
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setMode(mode === 'summarize' ? 'blog' : 'summarize')}
+            className="inline-flex items-center gap-2 text-sm text-clay hover:text-clay-light transition-colors font-semibold underline"
+          >
+            {mode === 'summarize'
+              ? <>Or convert this video to a full blog post →</>
+              : <>← Back to summarize mode</>}
+          </button>
+        </div>
       </div>
 
       {/* Loading */}
@@ -287,8 +317,14 @@ function Landing({ onSummarize, loading, error, user, notice }) {
               <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-clay animate-spin" />
             </div>
           </div>
-          <h2 className="text-xl font-bold text-ink mb-1">Summarizing...</h2>
-          <p className="text-sm text-ink-faint">Reading the transcript and extracting key points.</p>
+          <h2 className="text-xl font-bold text-ink mb-1">
+            {mode === 'blog' ? 'Generating blog post...' : 'Summarizing...'}
+          </h2>
+          <p className="text-sm text-ink-faint">
+            {mode === 'blog'
+              ? 'Reading the transcript and writing a publish-ready blog post.'
+              : 'Reading the transcript and extracting key points.'}
+          </p>
         </div>
       )}
 
