@@ -800,17 +800,27 @@ function BlogResult({ data, onReset }) {
 // ─── Public SEO Landing: /blog-tool ───────────────────
 // Targets "youtube to blog post" + adjacent queries.
 // Phase 3 Task 1: full content for the canonical landing.
+// Phase 3 Task 2: parameterised via `variant` prop so the two thin
+// landings (/youtube-to-article, /video-to-seo-article) reuse the
+// same body — only the H1 + subhead change.
 // Phase 3 Task 4 adds JSON-LD (SoftwareApplication schema).
-function BlogToolLanding() {
+function BlogToolLanding({ variant = 'default' }) {
+  const headlines = {
+    default: { h1: 'Turn YouTube Videos into Blog Posts', sub: 'Paste a YouTube link. Get a publish-ready blog post in 30 seconds — title, meta description, introduction, sections, FAQ, and conclusion.' },
+    article: { h1: 'Turn YouTube Videos into Articles', sub: 'Convert any YouTube video into a clean, publishable article in 30 seconds. Free, no sign-up required.' },
+    seo:     { h1: 'Turn Videos into SEO Articles', sub: 'Convert any video into an SEO-optimized article in 30 seconds. Built to rank in search from day one.' },
+  };
+  const h = headlines[variant] || headlines.default;
+
   return (
     <>
       {/* Hero */}
       <div className="text-center mb-12">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-ink mb-4 leading-tight">
-          Turn YouTube Videos into Blog Posts
+          {h.h1}
         </h1>
         <p className="text-xl text-ink-muted max-w-2xl mx-auto leading-relaxed">
-          Paste a YouTube link. Get a publish-ready blog post in 30 seconds — title, meta description, introduction, sections, FAQ, and conclusion.
+          {h.sub}
         </p>
         <a href="/" className="btn-primary inline-flex items-center gap-2 mt-6">
           Try it free <Icon.Arrow className="w-4 h-4" />
@@ -893,23 +903,12 @@ function BlogToolLanding() {
   );
 }
 
-// Phase 3 Task 2 stubs — replaced with thin landings in Task 2.
 function YouTubeToArticleLanding() {
-  return (
-    <div className="text-center py-20">
-      <h1 className="text-3xl font-extrabold text-ink mb-4">YouTube to Article</h1>
-      <p className="text-ink-muted">Coming soon — Phase 3 Task 2.</p>
-    </div>
-  );
+  return <BlogToolLanding variant="article" />;
 }
 
 function VideoToSeoArticleLanding() {
-  return (
-    <div className="text-center py-20">
-      <h1 className="text-3xl font-extrabold text-ink mb-4">Video to SEO Article</h1>
-      <p className="text-ink-muted">Coming soon — Phase 3 Task 2.</p>
-    </div>
-  );
+  return <BlogToolLanding variant="seo" />;
 }
 
 export default App
