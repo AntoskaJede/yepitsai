@@ -86,6 +86,35 @@ function App() {
     } catch { setError('Network error. Check your connection.') } finally { setLoading(false) }
   }
 
+  const handleConvertToBlog = async (videoId) => {
+    setError('')
+    setLoading(true)
+    try {
+      const headers = { 'Content-Type': 'application/json' }
+      if (token) headers.Authorization = `Bearer ${token}`
+      const url = `https://www.youtube.com/watch?v=${videoId}`
+      const res = await fetch(`${API}/api/blog`, { method: 'POST', headers, body: JSON.stringify({ url }) })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 402 && data.limitReached) {
+          setAuthMode('login')
+          setView('auth')
+          setError("You've used your free blog post for today. Sign in to upgrade to Pro for unlimited.")
+        } else if (data.proRequired) {
+          setView('tooLong'); setSummaryData({ duration: data.duration })
+        } else {
+          setError(data.error || 'Something went wrong while generating the blog post.')
+        }
+      } else {
+        if (data.proRequired) {
+          setView('tooLong'); setSummaryData({ duration: data.duration })
+        } else {
+          navigateToBlogResult(data)
+        }
+      }
+    } catch { setError('Network error. Check your connection.') } finally { setLoading(false) }
+  }
+
   const handleAuth = async (email, password, acceptTerms) => {
     setError('')
     const endpoint = authMode === 'signup' ? '/api/auth/signup' : '/api/auth/login'
@@ -116,7 +145,14 @@ function App() {
       <Header user={user} onLogin={() => { setAuthMode('login'); setView('auth') }} onSignup={() => { setAuthMode('signup'); setView('auth') }} onLogout={handleLogout} onUpgrade={handleUpgrade} onBlog={navigateToBlog} />
 
       {view === 'landing' && <Landing onSummarize={handleSummarize} loading={loading} error={error} user={user} notice={notice} />}
-      {view === 'result' && summaryData && <SummaryView data={summaryData} onReset={() => setView('landing')} />}
+      {view === 'result' && summaryData && (
+        <SummaryView
+          data={summaryData}
+          onReset={() => setView('landing')}
+          onConvertToBlog={handleConvertToBlog}
+          loading={loading}
+        />
+      )}
       {view === 'tooLong' && <TooLongView duration={summaryData?.duration} onUpgrade={handleUpgrade} onReset={() => setView('landing')} user={user} />}
       {view === 'auth' && <AuthView mode={authMode} setMode={setAuthMode} onAuth={handleAuth} error={error} onClose={() => { setView('landing'); setError('') }} />}
       {view === 'landing' && <PricingSection onUpgrade={handleUpgrade} />}
@@ -340,7 +376,7 @@ function Landing({ onSummarize, loading, error, user, notice }) {
 }
 
 // ─── Summary Result View ──────────────────────────────
-function SummaryView({ data, onReset }) {
+function SummaryView({ data, onReset, onConvertToBlog, loading }) {
   const { title, summary, takeaways, timestamps, videoId, remaining } = data
   const handleExport = (format) => {
     let content = `# ${title}\n\n## Summary\n${summary}\n`
@@ -398,6 +434,18 @@ function SummaryView({ data, onReset }) {
             <span className="text-clay font-medium cursor-pointer" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>Upgrade to Pro</span>
             {' '}for unlimited summaries and longer videos.
           </p>
+        </div>
+      )}
+      {onConvertToBlog && videoId && (
+        <div className="mb-6 text-center">
+          <button
+            onClick={() => onConvertToBlog(videoId)}
+            disabled={loading}
+            className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Generating blog post...' : 'Convert to blog post'}
+          </button>
+          <p className="text-xs text-ink-faint mt-2">Free: 1 blog post per day. Pro: unlimited.</p>
         </div>
       )}
       <p className="text-center text-xs text-ink-faint mb-6">Summarized with YepIts.ai</p>
