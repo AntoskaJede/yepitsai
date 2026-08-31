@@ -771,6 +771,71 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
 });
 
 // ============================================================
+// POST /api/blog — convert a YouTube video into a structured blog post
+// Phase 1 Task 1: shape only. Real prompt + TIERS wiring land in T2 / T5.
+// ============================================================
+app.post('/api/blog', optionalAuth, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'Please provide a YouTube URL.' });
+
+    const videoId = extractVideoId(url);
+    if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
+
+    // Hardcoded limits for Task 1 — replaced by TIERS.blog in Task 5.
+    const usage = req.user.plan === 'pro'
+      ? { allowed: true, remaining: Infinity, limit: Infinity }
+      : { allowed: true, remaining: 1, limit: 1 };
+    const maxLengthMinutes = req.user.plan === 'pro' ? Infinity : 30;
+
+    const transcript = await getTranscript(videoId);
+    if (!transcript) {
+      return res.status(400).json({
+        error: "This video doesn't have captions. Try a video with auto-generated or manual captions.",
+      });
+    }
+
+    const durationMinutes = getDurationFromTranscript(transcript);
+    if (durationMinutes > maxLengthMinutes) {
+      const meta = await getVideoMeta(videoId);
+      return res.json({
+        proRequired: true,
+        duration: durationMinutes,
+        title: meta.title,
+        channel: meta.channel,
+        videoId,
+        tier: req.user.plan,
+        maxLength: maxLengthMinutes,
+      });
+    }
+
+    // Shape only — Task 2 swaps this stub for the real Claude call.
+    const meta = await getVideoMeta(videoId);
+    const blogPost = {
+      title: meta.title || 'Blog post',
+      metaDescription: `Placeholder meta description for ${meta.title || 'this video'}.`.slice(0, 155),
+      introduction: 'Placeholder introduction. Real prompt lands in Task 2.',
+      sections: [{ heading: 'Placeholder section', paragraphs: ['Placeholder paragraph.'] }],
+      faq: [{ q: 'Placeholder question?', a: 'Placeholder answer.' }],
+      conclusion: 'Placeholder conclusion.',
+    };
+
+    res.json({
+      title: meta.title,
+      channel: meta.channel,
+      videoId,
+      duration: durationMinutes,
+      blogPost,
+      remaining: usage.remaining,
+      limit: usage.limit,
+    });
+  } catch (err) {
+    console.error('Blog error:', err);
+    res.status(500).json({ error: 'Something went wrong while building the blog post. Please try again.' });
+  }
+});
+
+// ============================================================
 // Usage, Leads, Stripe checkout
 // ============================================================
 app.get('/api/usage', auth, (req, res) => {
