@@ -603,23 +603,104 @@ function PrivacyView() {
   )
 }
 
-// ─── Blog Result View (Phase 2 Task 1 stub) ──────────
-// Phase 2 Task 2 replaces this stub with the full renderer:
-// title, metaDescription with copy button, sections, FAQ with
-// collapsible answers, conclusion. For now this confirms the view
-// is wired into the router and renders the documented data shape.
+// ─── Blog Result View ─────────────────────────────────
+// Renders the structured blog post returned by POST /api/blog.
+// Sections: title, metaDescription with copy button, introduction,
+// sections (heading + paragraphs), FAQ (collapsible), conclusion.
+// Uses the existing neo-brutalist design system — no emojis.
 function BlogResult({ data, onReset }) {
   const { title, channel, videoId, duration, blogPost } = data || {};
+  const [openFaq, setOpenFaq] = useState(null);
+  const [copiedMeta, setCopiedMeta] = useState(false);
+
+  const copyMeta = () => {
+    if (blogPost?.metaDescription) {
+      navigator.clipboard.writeText(blogPost.metaDescription);
+      setCopiedMeta(true);
+      setTimeout(() => setCopiedMeta(false), 2000);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-10">
-      <h1 className="text-xl font-bold text-ink mb-2">{title || 'Blog post'}</h1>
+      {/* Header */}
+      <h1 className="text-3xl font-extrabold text-ink mb-2 leading-tight">
+        {blogPost?.title || title || 'Blog post'}
+      </h1>
       <p className="text-sm text-ink-faint mb-6">
         {channel ? `${channel} · ` : ''}{duration} min · video {videoId}
       </p>
-      <pre className="card text-xs whitespace-pre-wrap text-ink-muted overflow-auto">
-        {JSON.stringify(blogPost, null, 2)}
-      </pre>
-      <div className="text-center mt-6">
+
+      {/* Meta description with copy button */}
+      {blogPost?.metaDescription && (
+        <div className="card mb-6">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <h2 className="text-xs font-bold text-clay uppercase tracking-wide">Meta description</h2>
+            <button
+              onClick={copyMeta}
+              className="text-xs font-semibold text-clay hover:text-clay-light transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              {copiedMeta ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <p className="text-sm text-ink-muted leading-relaxed">{blogPost.metaDescription}</p>
+        </div>
+      )}
+
+      {/* Introduction */}
+      {blogPost?.introduction && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Introduction</h2>
+          <p className="text-ink-muted leading-relaxed whitespace-pre-line">{blogPost.introduction}</p>
+        </div>
+      )}
+
+      {/* Sections */}
+      {blogPost?.sections?.length > 0 && (
+        <div className="space-y-6 mb-6">
+          {blogPost.sections.map((section, i) => (
+            <div key={i} className="card">
+              <h2 className="text-lg font-bold text-ink mb-3">{section.heading}</h2>
+              {section.paragraphs?.map((p, j) => (
+                <p key={j} className="text-ink-muted leading-relaxed mb-3 last:mb-0 whitespace-pre-line">{p}</p>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FAQ */}
+      {blogPost?.faq?.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">FAQ</h2>
+          <div className="space-y-2">
+            {blogPost.faq.map((f, i) => (
+              <div key={i} className="border-b border-cream-300 last:border-b-0 pb-2 last:pb-0">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between gap-3 py-2 text-left"
+                >
+                  <h3 className="font-semibold text-ink text-[15px]">{f.q}</h3>
+                  <span className="text-ink-faint text-xl flex-shrink-0">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && <p className="text-sm text-ink-muted leading-relaxed pb-3">{f.a}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Conclusion */}
+      {blogPost?.conclusion && (
+        <div className="card mb-6">
+          <h2 className="text-xs font-bold text-clay uppercase tracking-wide mb-3">Conclusion</h2>
+          <p className="text-ink-muted leading-relaxed whitespace-pre-line">{blogPost.conclusion}</p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <p className="text-center text-xs text-ink-faint mb-6">Generated with YepIts.ai</p>
+      <div className="text-center">
         <button onClick={onReset} className="btn-secondary">Convert another video</button>
       </div>
     </div>
