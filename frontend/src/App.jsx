@@ -803,7 +803,80 @@ function BlogResult({ data, onReset }) {
 // Phase 3 Task 2: parameterised via `variant` prop so the two thin
 // landings (/youtube-to-article, /video-to-seo-article) reuse the
 // same body — only the H1 + subhead change.
-// Phase 3 Task 4 adds JSON-LD (SoftwareApplication schema).
+// Phase 3 Task 4: JSON-LD SoftwareApplication + FAQPage schemas
+// emitted as <script type="application/ld+json"> tags.
+
+// Schema data — function (not constant) so each variant can use it.
+function blogToolSchema(variant) {
+  const variants = {
+    default: {
+      name: 'YepIts.ai Blog Converter',
+      alternateName: 'YouTube to Blog Post Converter',
+      description: 'Turn any YouTube video into a publish-ready blog post in 30 seconds. Title, meta description, intro, sections, FAQ, and conclusion.',
+    },
+    article: {
+      name: 'YepIts.ai YouTube to Article',
+      alternateName: 'YouTube to Article Converter',
+      description: 'Convert any YouTube video into a clean, publishable article in 30 seconds. Free, no sign-up required.',
+    },
+    seo: {
+      name: 'YepIts.ai Video to SEO Article',
+      alternateName: 'Video to SEO Article Converter',
+      description: 'Convert any video into an SEO-optimized article in 30 seconds. Built to rank in search from day one.',
+    },
+  };
+  const variantToPath = {
+    default: 'blog-tool',
+    article: 'youtube-to-article',
+    seo: 'video-to-seo-article',
+  };
+  const v = variants[variant] || variants.default;
+  const path = variantToPath[variant] || variantToPath.default;
+
+  const software = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: v.name,
+    alternateName: v.alternateName,
+    url: 'https://yepits.ai/' + path,
+    applicationCategory: 'MultimediaApplication',
+    operatingSystem: 'Web',
+    description: v.description,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      description: '1 free blog post per day. Pro: $7/month for unlimited.',
+    },
+    featureList: [
+      'Auto-generates a punchy title and meta description under 155 characters',
+      'Writes 4-6 H2/H3 sections from the video transcript',
+      'Includes 3 FAQs that real readers would Google',
+      'Confident, no-fluff tone — publish-ready output',
+      'No sign-up required for the free tier',
+    ],
+  };
+
+  const faqs = [
+    { q: 'Is this just a video transcript with line breaks?', a: 'No. We send the transcript to Claude, which produces a publish-ready post with a punchy title, a meta description, an introduction, sections, an FAQ, and a conclusion.' },
+    { q: 'Does the AI know what makes a good blog post?', a: 'Yes. The prompt enforces a confident, clear tone with no fluff, headings in H2/H3, a meta description under 155 characters, and FAQs that real readers would Google.' },
+    { q: 'Can I edit the output?', a: 'Of course. The output is yours to use, edit, and publish as you see fit.' },
+    { q: 'What if the video has no captions?', a: "We can't generate a post without captions. Most YouTube videos have auto-generated captions, which work." },
+    { q: 'How long can the video be?', a: 'Free users can convert videos up to 30 minutes. Pro users can convert any length.' },
+  ];
+  const faqPage = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  };
+
+  return { software, faqPage };
+}
+
 function BlogToolLanding({ variant = 'default' }) {
   const headlines = {
     default: { h1: 'Turn YouTube Videos into Blog Posts', sub: 'Paste a YouTube link. Get a publish-ready blog post in 30 seconds — title, meta description, introduction, sections, FAQ, and conclusion.' },
@@ -812,8 +885,20 @@ function BlogToolLanding({ variant = 'default' }) {
   };
   const h = headlines[variant] || headlines.default;
 
+  const { software, faqPage } = blogToolSchema(variant);
+
   return (
     <>
+      {/* JSON-LD: SoftwareApplication + FAQPage structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(software) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
+      />
+
       {/* Hero */}
       <div className="text-center mb-12">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-ink mb-4 leading-tight">
