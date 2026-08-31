@@ -19,6 +19,9 @@ function App() {
     const path = window.location.pathname
     if (path === '/terms') setView('terms')
     else if (path === '/privacy') setView('privacy')
+    else if (path === '/blog-tool') setView('blog-tool')
+    else if (path === '/youtube-to-article') setView('youtube-to-article')
+    else if (path === '/video-to-seo-article') setView('video-to-seo-article')
 
     const params = new URLSearchParams(window.location.search)
     const verifyToken = params.get('verify')
@@ -166,13 +169,16 @@ function App() {
       {view === 'auth' && <AuthView mode={authMode} setMode={setAuthMode} onAuth={handleAuth} error={error} onClose={() => { setView('landing'); setError('') }} />}
       {view === 'landing' && <PricingSection onUpgrade={handleUpgrade} />}
       {view === 'landing' && <FAQSection />}
-      {(view === 'terms' || view === 'privacy') && (
+      {(view === 'terms' || view === 'privacy' || view === 'blog-tool' || view === 'youtube-to-article' || view === 'video-to-seo-article') && (
         <div className="max-w-2xl mx-auto px-4 pt-6">
           <button onClick={() => setView('landing')} className="text-sm text-ink-faint hover:text-clay transition-colors">← Back to YepIts.ai</button>
         </div>
       )}
       {view === 'terms' && <TermsView />}
       {view === 'privacy' && <PrivacyView />}
+      {view === 'blog-tool' && <BlogToolLanding />}
+      {view === 'youtube-to-article' && <YouTubeToArticleLanding />}
+      {view === 'video-to-seo-article' && <VideoToSeoArticleLanding />}
       {view === 'blog' && <BlogList onNavigate={navigateToBlogPost} />}
       {view === 'blog-post' && <BlogPost slug={blogSlug} onNavigate={(slug) => slug === 'blog' ? navigateToBlog() : navigateToBlogPost(slug)} />}
       {view === 'blog-result' && blogResult && <BlogResult data={blogResult} onReset={() => setView('landing')} />}
@@ -787,6 +793,121 @@ function BlogResult({ data, onReset }) {
       <div className="text-center">
         <button onClick={onReset} className="btn-secondary">Convert another video</button>
       </div>
+    </div>
+  );
+}
+
+// ─── Public SEO Landing: /blog-tool ───────────────────
+// Targets "youtube to blog post" + adjacent queries.
+// Phase 3 Task 1: full content for the canonical landing.
+// Phase 3 Task 4 adds JSON-LD (SoftwareApplication schema).
+function BlogToolLanding() {
+  return (
+    <>
+      {/* Hero */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-ink mb-4 leading-tight">
+          Turn YouTube Videos into Blog Posts
+        </h1>
+        <p className="text-xl text-ink-muted max-w-2xl mx-auto leading-relaxed">
+          Paste a YouTube link. Get a publish-ready blog post in 30 seconds — title, meta description, introduction, sections, FAQ, and conclusion.
+        </p>
+        <a href="/" className="btn-primary inline-flex items-center gap-2 mt-6">
+          Try it free <Icon.Arrow className="w-4 h-4" />
+        </a>
+        <p className="text-xs text-ink-faint mt-3">1 free blog post per day. No sign-up needed.</p>
+      </div>
+
+      {/* How it works */}
+      <section className="mb-12">
+        <h2 className="text-3xl font-extrabold text-ink mb-6">How it works</h2>
+        <ol className="space-y-4 text-ink-muted leading-relaxed">
+          <li><strong className="text-ink">1. Paste your YouTube URL.</strong> Any video with captions works — including podcasts, lectures, tutorials, and interviews.</li>
+          <li><strong className="text-ink">2. We transcribe the video.</strong> The full transcript is extracted using the same captions a viewer would read.</li>
+          <li><strong className="text-ink">3. We write the blog post.</strong> Claude (Anthropic's AI) reads the transcript and writes a publish-ready post: a punchy title, a 155-char meta description, an introduction, 4-6 H2/H3 sections, 3 FAQs that real readers would Google, and a conclusion.</li>
+          <li><strong className="text-ink">4. You publish.</strong> Copy the post into WordPress, Ghost, Substack, Medium, or wherever. It's your content.</li>
+        </ol>
+      </section>
+
+      {/* Example output */}
+      <section className="mb-12">
+        <h2 className="text-3xl font-extrabold text-ink mb-6">Example output</h2>
+        <p className="text-ink-muted mb-6">Input: a 17-minute TED talk. Output: a complete blog post, ready to ship.</p>
+        <div className="card">
+          <h3 className="text-2xl font-extrabold text-ink mb-2">How Great Leaders Inspire Action</h3>
+          <p className="text-sm text-ink-faint mb-4">TED Talk · 17 min · video qp0HIF3SfB4</p>
+          <p className="text-xs font-bold text-clay uppercase tracking-wide mb-1">Meta description</p>
+          <p className="text-sm text-ink-muted mb-4">A practical breakdown of Simon Sinek's Golden Circle model — how great leaders communicate from the inside out, and why that matters.</p>
+          <p className="text-xs font-bold text-clay uppercase tracking-wide mb-1">Introduction</p>
+          <p className="text-sm text-ink-muted mb-4">Simon Sinek explains why great leaders start with "why" before "what." His Golden Circle model has shaped how leaders communicate for over a decade — and it applies whether you're running a company or pitching a project.</p>
+          <p className="text-xs font-bold text-clay uppercase tracking-wide mb-1">The Golden Circle</p>
+          <p className="text-sm text-ink-muted">Start with why, then how, then what. Most organizations communicate from the outside in. Inspired leaders flip the order — and the people listening feel the difference...</p>
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section className="mb-12">
+        <h2 className="text-3xl font-extrabold text-ink mb-6">Why convert YouTube to a blog post?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {[
+            { title: 'Reach readers, not just viewers', desc: 'Some people search Google, some search YouTube. Your content deserves both audiences.' },
+            { title: 'Compound your existing videos', desc: 'Every video you have is already a draft. The blog post is just a different surface.' },
+            { title: 'SEO without starting from zero', desc: 'You already have the expertise — the transcript is the research. We turn it into a search-friendly post.' },
+            { title: 'Skip the writing slog', desc: 'Drafting a 1500-word post takes two hours. Generating it takes thirty seconds.' },
+          ].map((b, i) => (
+            <div key={i} className="card">
+              <h3 className="font-bold text-ink mb-2">{b.title}</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">{b.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mb-12">
+        <h2 className="text-3xl font-extrabold text-ink mb-6">FAQ</h2>
+        <div className="space-y-3">
+          {[
+            { q: 'Is this just a video transcript with line breaks?', a: 'No. We send the transcript to Claude, which produces a publish-ready post with a punchy title, a meta description, an introduction, sections, an FAQ, and a conclusion.' },
+            { q: 'Does the AI know what makes a good blog post?', a: 'Yes. The prompt enforces a confident, clear tone with no fluff, headings in H2/H3, a meta description under 155 characters, and FAQs that real readers would Google.' },
+            { q: 'Can I edit the output?', a: 'Of course. The output is yours to use, edit, and publish as you see fit.' },
+            { q: 'What if the video has no captions?', a: "We can't generate a post without captions. Most YouTube videos have auto-generated captions, which work." },
+            { q: 'How long can the video be?', a: 'Free users can convert videos up to 30 minutes. Pro users can convert any length.' },
+          ].map((f, i) => (
+            <div key={i} className="card">
+              <h3 className="font-bold text-ink mb-2">{f.q}</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <div className="text-center">
+        <a href="/" className="btn-primary inline-flex items-center gap-2">
+          Try it free <Icon.Arrow className="w-4 h-4" />
+        </a>
+        <p className="text-xs text-ink-faint mt-3">1 free blog post per day. Pro: unlimited.</p>
+      </div>
+    </>
+  );
+}
+
+// Phase 3 Task 2 stubs — replaced with thin landings in Task 2.
+function YouTubeToArticleLanding() {
+  return (
+    <div className="text-center py-20">
+      <h1 className="text-3xl font-extrabold text-ink mb-4">YouTube to Article</h1>
+      <p className="text-ink-muted">Coming soon — Phase 3 Task 2.</p>
+    </div>
+  );
+}
+
+function VideoToSeoArticleLanding() {
+  return (
+    <div className="text-center py-20">
+      <h1 className="text-3xl font-extrabold text-ink mb-4">Video to SEO Article</h1>
+      <p className="text-ink-muted">Coming soon — Phase 3 Task 2.</p>
     </div>
   );
 }
