@@ -1,16 +1,22 @@
 # YepIts.ai
 
-> YepIts.ai is an AI-powered YouTube video summarizer that turns long videos into concise, accurate summaries. Get the key points of any video in seconds — transcripts, key takeaways, and clickable timestamps. Free tier: 3 summaries per day for videos up to 15 minutes. Pro tier: $7/month for unlimited summaries with no video length cap.
+> YepIts.ai is an AI-powered YouTube tool that turns long videos into concise, accurate summaries AND publish-ready blog posts. Paste any YouTube URL to get key points, takeaways, and clickable timestamps — or convert a video into a complete blog post with title, meta description, intro, sections, FAQ, and conclusion. Free tier: 3 summaries and 1 blog post per day (videos up to 15-30 min). Pro tier: $7/month for unlimited usage with no video length cap.
 
 ## Product Pages
 
-- [YepIts.ai Homepage](https://yepits.ai/) — Paste any YouTube URL and get an AI summary in seconds
-- [Pricing](https://yepits.ai/#pricing) — Free (3/day, videos ≤15 min) and Pro ($7/mo, unlimited)
+- [YepIts.ai Homepage](https://yepits.ai/) — Paste any YouTube URL and get an AI summary or blog post in seconds
+- [Pricing](https://yepits.ai/#pricing) — Free (3 summaries/day, 1 blog post/day, videos ≤15-30 min) and Pro ($7/mo, unlimited)
 - [Sign Up](https://yepits.ai/) — Use the homepage; no account required for the free tier
+
+## Tools
+
+- [YouTube to Blog Post Converter](https://yepits.ai/blog-tool) — Turn any YouTube video into a publish-ready blog post in 30 seconds. Includes title, meta description, intro, sections, FAQ, and conclusion.
+- [YouTube to Article](https://yepits.ai/youtube-to-article) — Convert YouTube videos into clean, publishable articles. Free, no sign-up required.
+- [Video to SEO Article](https://yepits.ai/video-to-seo-article) — Convert any video into an SEO-optimized article built to rank in search.
 
 ## Blog
 
-- [YepIts.ai Blog](https://yepits.ai/blog) — Tips, tutorials, and updates on AI video summarization
+- [YepIts.ai Blog](https://yepits.ai/blog) — Tips, tutorials, and updates on AI video summarization and blog post generation
 
 ## FAQ
 
@@ -18,11 +24,13 @@
 
 ## Documentation
 
-- [How It Works](https://yepits.ai/#how-it-works) — Paste a URL, get a summary in seconds. No account needed.
+- [How It Works](https://yepits.ai/#how-it-works) — Paste a URL, get a summary or blog post in seconds. No account needed.
 - [Privacy Policy](https://yepits.ai/privacy) — How we handle your data
 - [Terms of Service](https://yepits.ai/terms) — Usage terms and conditions
 
 ## Roadmap
 
+- Auto-publish to WordPress — planned
+- Brand-voice customization for blog posts — planned
 - Chrome / browser extension — planned (build phase Q3 2026)
 - Shareable summary pages — planned
