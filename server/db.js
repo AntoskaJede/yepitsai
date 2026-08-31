@@ -233,7 +233,8 @@ export function getStats() {
   const leads = db.prepare('SELECT COUNT(*) as count FROM leads').get().count;
   const summaries = db.prepare('SELECT COUNT(*) as count FROM summaries').get().count;
   const proUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE plan = 'pro'").get().count;
-  return { users, leads, summaries, proUsers };
+  const blogPosts = db.prepare('SELECT COUNT(*) as count FROM blog_posts').get().count;
+  return { users, leads, summaries, proUsers, blogPosts };
 }
 
 // ============================================================
