@@ -56,6 +56,25 @@ db.exec(`
     summaries_used INTEGER NOT NULL DEFAULT 0,
     summaries_reset_at INTEGER NOT NULL DEFAULT 0
   );
+
+  -- Per-user blog generation history. user_id is nullable so the table
+  -- can also store anonymous generations if we ever choose to (we don't
+  -- write anon rows today — mirrors the summaries table convention where
+  -- only authenticated users persist history).
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT,
+    video_id TEXT NOT NULL,
+    title TEXT,
+    blog_json TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_video_created
+    ON blog_posts (video_id, created_at DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_blog_posts_user_created
+    ON blog_posts (user_id, created_at DESC);
 `);
 
 // Add columns if they don't exist (for existing DBs)
@@ -183,6 +202,31 @@ export function getStats() {
   const summaries = db.prepare('SELECT COUNT(*) as count FROM summaries').get().count;
   const proUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE plan = 'pro'").get().count;
   return { users, leads, summaries, proUsers };
+}
+
+// ============================================================
+// Blog post history (per-user audit trail of generated blogs)
+// ============================================================
+export function addBlogPost({ userId, videoId, title, blogPost }) {
+  db.prepare(
+    'INSERT INTO blog_posts (user_id, video_id, title, blog_json) VALUES (?, ?, ?, ?)'
+  ).run(userId || null, videoId, title || null, JSON.stringify(blogPost));
+}
+
+export function listBlogPostsForUser(userId, limit = 50) {
+  return db.prepare(
+    'SELECT id, video_id, title, created_at FROM blog_posts WHERE user_id = ? ORDER BY created_at DESC LIMIT ?'
+  ).all(userId, limit);
+}
+
+export function getBlogPost(id, userId) {
+  return db.prepare(
+    'SELECT * FROM blog_posts WHERE id = ? AND user_id = ?'
+  ).get(id, userId);
+}
+
+export function countBlogPosts() {
+  return db.prepare('SELECT COUNT(*) as count FROM blog_posts').get().count;
 }
 
 export { db };
