@@ -635,6 +635,60 @@ function getDurationFromTranscript(transcript) {
 }
 
 // ============================================================
+// Blog post generation (Claude)
+// ============================================================
+const BLOG_SYSTEM_PROMPT = `You are an SEO blog writer. Given a YouTube video transcript, produce a publish-ready blog post. Output strict JSON. NO emojis. Headings in H2/H3. Meta description <=155 chars. FAQ = 3 questions readers would actually Google. Tone: confident, clear, no fluff.`;
+
+function buildBlogUserPrompt({ transcriptText, videoTitle, channel }) {
+  return `Video title: "${videoTitle}"
+Channel: ${channel || 'Unknown'}
+
+Transcript:
+${transcriptText}
+
+Return JSON matching this exact shape:
+{
+  "title": "string — punchy, SEO-friendly, max 70 chars",
+  "metaDescription": "string — meta description, max 155 chars, includes primary keyword",
+  "introduction": "string — 2-3 sentences, hook + what the reader will learn",
+  "sections": [{"heading": "string (H2 or H3)", "paragraphs": ["string paragraph", "..."]}],
+  "faq": [{"q": "string — a question a real reader would Google", "a": "string — concise answer"}],
+  "conclusion": "string — 2-3 sentences, recap + light CTA"
+}
+
+Rules:
+- 4 to 6 sections total
+- 1 to 3 paragraphs per section
+- Exactly 3 FAQ entries
+- No emojis anywhere in any string
+- Return ONLY the JSON object, no prose, no markdown fences`;
+}
+
+async function blogPostWithClaude({ transcriptText, videoTitle, channel }) {
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 4000,
+    system: BLOG_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: buildBlogUserPrompt({ transcriptText, videoTitle, channel }) }],
+  });
+
+  let clean = message.content[0].text.trim();
+  if (clean.startsWith('```')) clean = clean.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+
+  try {
+    const parsed = JSON.parse(clean);
+    // Minimal shape guard so the rest of the route can trust the structure.
+    if (!parsed.title || !Array.isArray(parsed.sections) || !Array.isArray(parsed.faq)) {
+      throw new Error('Claude returned JSON missing required fields');
+    }
+    return parsed;
+  } catch (e) {
+    console.error('Blog JSON parse failed:', e.message, 'Raw:', clean.slice(0, 200));
+    return null;
+  }
+}
+
+// ============================================================
 // Claude summarization
 // ============================================================
 async function summarizeWithClaude(transcriptText, videoTitle) {
@@ -772,7 +826,8 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
 
 // ============================================================
 // POST /api/blog — convert a YouTube video into a structured blog post
-// Phase 1 Task 1: shape only. Real prompt + TIERS wiring land in T2 / T5.
+// Phase 1 Tasks 1+2: route + Claude prompt wired up.
+// Phase 1 Tasks 3-5 still pending: blog_posts table, blog_cache, TIERS.blog.
 // ============================================================
 app.post('/api/blog', optionalAuth, async (req, res) => {
   try {
@@ -782,7 +837,7 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
     const videoId = extractVideoId(url);
     if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
-    // Hardcoded limits for Task 1 — replaced by TIERS.blog in Task 5.
+    // Hardcoded limits for Tasks 1-2 — replaced by TIERS.blog in Task 5.
     const usage = req.user.plan === 'pro'
       ? { allowed: true, remaining: Infinity, limit: Infinity }
       : { allowed: true, remaining: 1, limit: 1 };
@@ -796,8 +851,9 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
     }
 
     const durationMinutes = getDurationFromTranscript(transcript);
+    const meta = await getVideoMeta(videoId);
+
     if (durationMinutes > maxLengthMinutes) {
-      const meta = await getVideoMeta(videoId);
       return res.json({
         proRequired: true,
         duration: durationMinutes,
@@ -809,16 +865,24 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
       });
     }
 
-    // Shape only — Task 2 swaps this stub for the real Claude call.
-    const meta = await getVideoMeta(videoId);
-    const blogPost = {
-      title: meta.title || 'Blog post',
-      metaDescription: `Placeholder meta description for ${meta.title || 'this video'}.`.slice(0, 155),
-      introduction: 'Placeholder introduction. Real prompt lands in Task 2.',
-      sections: [{ heading: 'Placeholder section', paragraphs: ['Placeholder paragraph.'] }],
-      faq: [{ q: 'Placeholder question?', a: 'Placeholder answer.' }],
-      conclusion: 'Placeholder conclusion.',
-    };
+    const transcriptText = transcript
+      .map(e => {
+        const s = Math.floor(e.offset / 1000);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} ${e.text}`;
+      })
+      .join('\n');
+
+    const blogPost = await blogPostWithClaude({
+      transcriptText,
+      videoTitle: meta.title,
+      channel: meta.channel,
+    });
+
+    if (!blogPost) {
+      return res.status(502).json({
+        error: 'We could not generate a blog post for this video right now. Please try again or try a different video.',
+      });
+    }
 
     res.json({
       title: meta.title,
