@@ -877,6 +877,14 @@ function blogToolSchema(variant) {
   return { software, faqPage };
 }
 
+// Safe JSON for <script type="application/ld+json">: replace any
+// closing-script sequence so a future dynamic field can't break out
+// of the script tag context. See OWASP "JSON hijacking" guidance —
+// </ is enough to escape, the slash variant is JSON-safe.
+function safeJsonForScript(obj) {
+  return JSON.stringify(obj).replace(/</g, '\\u003c');
+}
+
 function BlogToolLanding({ variant = 'default' }) {
   const headlines = {
     default: { h1: 'Turn YouTube Videos into Blog Posts', sub: 'Paste a YouTube link. Get a publish-ready blog post in 30 seconds — title, meta description, introduction, sections, FAQ, and conclusion.' },
@@ -892,11 +900,11 @@ function BlogToolLanding({ variant = 'default' }) {
       {/* JSON-LD: SoftwareApplication + FAQPage structured data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(software) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(software) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(faqPage) }}
       />
 
       {/* Hero */}
