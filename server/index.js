@@ -16,8 +16,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   db, createUser, getUserByEmail, getUserById, updateUserPlan,
-  incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats,
-  getCachedSummary, setCachedSummary, getAnonUsage, incrementAnonUsage,
+  incrementUsage, incrementBlogUsage, resetUsageIfNeeded,
+  addLead, addSummary, addBlogPost, getStats,
+  getCachedSummary, setCachedSummary,
+  getAnonUsage, incrementAnonUsage, incrementAnonBlogUsage,
   getCachedBlogPost, setCachedBlogPost,
 } from './db.js';
 
@@ -205,6 +207,7 @@ function optionalAuth(req, res, next) {
     plan: 'free',
     summaries_used: anonState.summaries_used,
     summaries_reset_at: anonState.summaries_reset_at,
+    blogs_used: anonState.blogs_used,
   };
   next();
 }
@@ -334,11 +337,19 @@ const TIERS = {
     summaries_per_day: 3,
     max_video_length: 15, // minutes
     features: ['Key takeaways', 'Timestamps', 'Copy to clipboard'],
+    blog: {
+      posts_per_day: 1,
+      max_video_length: 30, // minutes — longer than summaries because blog readers expect more depth
+    },
   },
   pro: {
     summaries_per_day: Infinity,
     max_video_length: Infinity,
     features: ['Unlimited summaries', 'Any video length', 'Export to .md/.txt', 'No ads'],
+    blog: {
+      posts_per_day: Infinity,
+      max_video_length: Infinity,
+    },
   },
 };
 
@@ -356,6 +367,19 @@ function checkUsage(user) {
 function getVideoLengthLimit(user) {
   const tier = TIERS[user.plan] || TIERS.free;
   return tier.max_video_length;
+}
+
+function checkBlogUsage(user) {
+  const tier = TIERS[user.plan] || TIERS.free;
+  const limit = tier.blog.posts_per_day;
+  const used = user.blogs_used || 0;
+  if (used >= limit) return { allowed: false, remaining: 0, limit };
+  return { allowed: true, remaining: limit - used, limit };
+}
+
+function getBlogVideoLengthLimit(user) {
+  const tier = TIERS[user.plan] || TIERS.free;
+  return tier.blog.max_video_length;
 }
 
 // ============================================================
@@ -827,8 +851,20 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
 
 // ============================================================
 // POST /api/blog — convert a YouTube video into a structured blog post
-// Phase 1 Tasks 1-4: route + Claude prompt + blog_posts history + blog_cache.
-// Phase 1 Task 5 still pending: TIERS.blog wiring + usage counters.
+// Phase 1 Tasks 1-5: route + Claude prompt + history + cache + TIERS.
+// History rows and counter increments happen only after a fresh generation,
+// not on cache hits (cached responses are free and don't burn quota).
+//
+// Flow:
+//   1. parse url, extract videoId
+//   2. check the cache — if hit, return blogPost with cached:true.
+//      Cache hits bypass the usage gate so a user who hit their daily
+//      limit can still see popular videos they've already paid for.
+//      We still honor tier length limits (free user on cached 60-min
+//      video gets proRequired, not the cached post).
+//   3. on cache miss: gate on checkBlogUsage, fetch transcript,
+//      check duration, call Claude, cache the result, increment usage,
+//      write history.
 // ============================================================
 app.post('/api/blog', optionalAuth, async (req, res) => {
   try {
@@ -838,15 +874,9 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
     const videoId = extractVideoId(url);
     if (!videoId) return res.status(400).json({ error: 'Could not parse YouTube URL. Please paste a valid YouTube link.' });
 
-    // Hardcoded limits for Tasks 1-4 — replaced by TIERS.blog in Task 5.
-    const usage = req.user.plan === 'pro'
-      ? { allowed: true, remaining: Infinity, limit: Infinity }
-      : { allowed: true, remaining: 1, limit: 1 };
-    const maxLengthMinutes = req.user.plan === 'pro' ? Infinity : 30;
+    const maxLengthMinutes = getBlogVideoLengthLimit(req.user);
 
-    // Cache check first — popular videos don't re-generate on every request.
-    // Cached duration drives tier gating, so a free user still gets proRequired
-    // even on a cache hit if the cached video is over their limit.
+    // Cache check FIRST — popular videos are free regardless of quota.
     const cached = getCachedBlogPost(videoId);
     if (cached) {
       if (cached.duration > maxLengthMinutes) {
@@ -861,6 +891,10 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
           cached: true,
         });
       }
+      // Returned `remaining`/`limit` reflect current quota so the UI can
+      // still show "X free posts left today". Infinity becomes null in JSON,
+      // which the frontend treats as "unlimited" (same convention as /api/summarize).
+      const usage = checkBlogUsage(req.user);
       return res.json({
         title: cached.title,
         channel: cached.channel,
@@ -870,6 +904,15 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
         remaining: usage.remaining,
         limit: usage.limit,
         cached: true,
+      });
+    }
+
+    // Cache miss — gate on usage, then generate.
+    const usage = checkBlogUsage(req.user);
+    if (!usage.allowed) {
+      return res.status(402).json({
+        error: `You've used all ${usage.limit} free blog posts for today. Upgrade to Pro for unlimited blog posts.`,
+        limitReached: true,
       });
     }
 
@@ -922,14 +965,29 @@ app.post('/api/blog', optionalAuth, async (req, res) => {
       blogPost,
     });
 
+    // Increment usage + write history. Mirrors the /api/summarize flow:
+    // anonymous users get per-IP SQLite counters, authenticated users get
+    // a row in blog_posts and a per-user counter bump.
+    if (req.user.id.startsWith('anon_')) {
+      const anonIp = req.user.id.slice('anon_'.length);
+      incrementAnonBlogUsage(anonIp);
+      req.user.blogs_used += 1;
+    } else {
+      incrementBlogUsage(req.user.id);
+      addBlogPost({ userId: req.user.id, videoId, title: meta.title, blogPost });
+    }
+
+    // Recompute `usage` so the response reflects the post-request counter.
+    const updatedUsage = checkBlogUsage(req.user);
+
     res.json({
       title: meta.title,
       channel: meta.channel,
       videoId,
       duration: durationMinutes,
       blogPost,
-      remaining: usage.remaining,
-      limit: usage.limit,
+      remaining: updatedUsage.remaining,
+      limit: updatedUsage.limit,
     });
   } catch (err) {
     console.error('Blog error:', err);

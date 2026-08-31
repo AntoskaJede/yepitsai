@@ -14,6 +14,7 @@ db.exec(`
     stripe_subscription_id TEXT,
     summaries_used INTEGER DEFAULT 0,
     summaries_reset_at INTEGER DEFAULT 0,
+    blogs_used INTEGER DEFAULT 0,
     email_verified INTEGER DEFAULT 0,
     verify_token TEXT,
     reset_token TEXT,
@@ -50,11 +51,15 @@ db.exec(`
   );
 
   -- Anonymous usage tracking (per-IP) so the 3/day free limit survives restarts.
-  -- Same reset schedule as authenticated users (every 24h).
+  -- Same reset schedule as authenticated users (every 24h). The summaries_reset_at
+  -- column also drives the blog counter reset — blog usage shares the same
+  -- 24h window as summaries so a free user doesn't get 2x generations by
+  -- timing their summary and blog across the reset boundary.
   CREATE TABLE IF NOT EXISTS anon_usage (
     ip TEXT PRIMARY KEY,
     summaries_used INTEGER NOT NULL DEFAULT 0,
-    summaries_reset_at INTEGER NOT NULL DEFAULT 0
+    summaries_reset_at INTEGER NOT NULL DEFAULT 0,
+    blogs_used INTEGER NOT NULL DEFAULT 0
   );
 
   -- Per-user blog generation history. user_id is nullable so the table
@@ -93,6 +98,8 @@ try { db.exec('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0'); 
 try { db.exec('ALTER TABLE users ADD COLUMN verify_token TEXT'); } catch {}
 try { db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT'); } catch {}
 try { db.exec('ALTER TABLE users ADD COLUMN reset_expires INTEGER'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN blogs_used INTEGER DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE anon_usage ADD COLUMN blogs_used INTEGER NOT NULL DEFAULT 0'); } catch {}
 
 export function createUser({ id, email, passwordHash, verifyToken }) {
   db.prepare('INSERT INTO users (id, email, password_hash, summaries_reset_at, verify_token) VALUES (?, ?, ?, ?, ?)').run(
@@ -122,10 +129,15 @@ export function incrementUsage(userId) {
 export function resetUsageIfNeeded(user) {
   if (Date.now() > user.summaries_reset_at) {
     const nextReset = Date.now() + 24 * 60 * 60 * 1000;
-    db.prepare('UPDATE users SET summaries_used = 0, summaries_reset_at = ? WHERE id = ?').run(nextReset, user.id);
-    return { ...user, summaries_used: 0, summaries_reset_at: nextReset };
+    // Reset both counters together — they share the 24h window.
+    db.prepare('UPDATE users SET summaries_used = 0, summaries_reset_at = ?, blogs_used = 0 WHERE id = ?').run(nextReset, user.id);
+    return { ...user, summaries_used: 0, summaries_reset_at: nextReset, blogs_used: 0 };
   }
   return user;
+}
+
+export function incrementBlogUsage(userId) {
+  db.prepare('UPDATE users SET blogs_used = blogs_used + 1 WHERE id = ?').run(userId);
 }
 
 export function addLead(email, source) {
@@ -192,19 +204,28 @@ const ANON_RESET_MS = 24 * 60 * 60 * 1000; // 24h
 
 export function getAnonUsage(ip) {
   const row = db.prepare('SELECT * FROM anon_usage WHERE ip = ?').get(ip);
-  if (!row) return { summaries_used: 0, summaries_reset_at: Date.now() + ANON_RESET_MS };
+  if (!row) {
+    return { summaries_used: 0, summaries_reset_at: Date.now() + ANON_RESET_MS, blogs_used: 0 };
+  }
   if (Date.now() > row.summaries_reset_at) {
     const nextReset = Date.now() + ANON_RESET_MS;
-    db.prepare('UPDATE anon_usage SET summaries_used = 0, summaries_reset_at = ? WHERE ip = ?').run(nextReset, ip);
-    return { summaries_used: 0, summaries_reset_at: nextReset };
+    // Reset both counters together — shared 24h window.
+    db.prepare('UPDATE anon_usage SET summaries_used = 0, summaries_reset_at = ?, blogs_used = 0 WHERE ip = ?').run(nextReset, ip);
+    return { summaries_used: 0, summaries_reset_at: nextReset, blogs_used: 0 };
   }
-  return { summaries_used: row.summaries_used, summaries_reset_at: row.summaries_reset_at };
+  return { summaries_used: row.summaries_used, summaries_reset_at: row.summaries_reset_at, blogs_used: row.blogs_used ?? 0 };
 }
 
 export function incrementAnonUsage(ip) {
   // Ensure row exists first (INSERT OR IGNORE is idempotent)
-  db.prepare('INSERT OR IGNORE INTO anon_usage (ip, summaries_used, summaries_reset_at) VALUES (?, 0, ?)').run(ip, Date.now() + ANON_RESET_MS);
+  db.prepare('INSERT OR IGNORE INTO anon_usage (ip, summaries_used, summaries_reset_at, blogs_used) VALUES (?, 0, ?, 0)').run(ip, Date.now() + ANON_RESET_MS);
   db.prepare('UPDATE anon_usage SET summaries_used = summaries_used + 1 WHERE ip = ?').run(ip);
+}
+
+export function incrementAnonBlogUsage(ip) {
+  // Ensure row exists first (INSERT OR IGNORE is idempotent)
+  db.prepare('INSERT OR IGNORE INTO anon_usage (ip, summaries_used, summaries_reset_at, blogs_used) VALUES (?, 0, ?, 0)').run(ip, Date.now() + ANON_RESET_MS);
+  db.prepare('UPDATE anon_usage SET blogs_used = blogs_used + 1 WHERE ip = ?').run(ip);
 }
 
 export function getStats() {
