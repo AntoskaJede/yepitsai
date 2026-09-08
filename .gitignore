@@ -23,3 +23,6 @@ data/
 *.db
 *.sqlite
 server/.env
+
+# Extension packages and store assets (regenerate with extension/build.sh)
+dist/

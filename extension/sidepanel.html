@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YepIts.ai</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="#FF4F00" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        <span>YepIts.ai</span>
+      </div>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-btn" style="display:none;" title="Account">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </button>
+        <button id="signinBtn" class="link-btn" style="display:none;">Sign in</button>
+        <button id="logoutBtn" class="link-btn" style="display:none;">Sign out</button>
+      </div>
+    </div>
+
+    <!-- AUTH VIEW -->
+    <div id="authView" class="view">
+      <!-- Login/Signup -->
+      <div id="authFormView" class="auth-card">
+        <div class="auth-logo">
+          <svg viewBox="0 0 24 24" width="48" height="48"><path fill="#FF4F00" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </div>
+        <h2 id="authTitle">Welcome back</h2>
+        <p class="subtext" id="authSubtitle">Sign in to summarize YouTube videos</p>
+
+        <div id="authError" class="error-box" style="display:none;">
+          <p id="authErrorText"></p>
+        </div>
+
+        <form id="authForm">
+          <input type="email" id="emailInput" placeholder="Email address" required autocomplete="email" />
+          <input type="password" id="passwordInput" placeholder="Password" required autocomplete="current-password" />
+          <button type="submit" id="authSubmit" class="primary-btn">Sign In</button>
+        </form>
+
+        <div class="auth-links">
+          <a href="#" id="switchMode">No account? Sign up free</a>
+          <a href="#" id="showForgot">Forgot password?</a>
+        </div>
+        <p class="tiny" style="text-align:center;margin-top:10px;"><a href="#" id="skipAuth">Continue without an account</a></p>
+
+        <div class="auth-pricing">
+          <div class="pricing-pill"><strong>Free</strong> 3 summaries/day</div>
+          <div class="pricing-pill"><strong>Pro</strong> $7/mo unlimited</div>
+        </div>
+
+        <p class="tiny terms-line">
+          By continuing, you agree to our
+          <a href="https://yepits.ai/terms" target="_blank">Terms</a> and
+          <a href="https://yepits.ai/privacy" target="_blank">Privacy Policy</a>
+        </p>
+      </div>
+
+      <!-- Forgot password -->
+      <div id="forgotView" class="auth-card" style="display:none;">
+        <button class="back-btn" id="backFromForgot">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Back
+        </button>
+
+        <h2>Reset password</h2>
+        <p class="subtext">Enter your email and we'll send you a reset link</p>
+
+        <form id="forgotForm">
+          <input type="email" id="forgotEmail" placeholder="Email address" required />
+          <button type="submit" class="primary-btn" id="forgotSubmit">Send reset link</button>
+        </form>
+
+        <div id="forgotSuccess" style="display:none;" class="success-box">
+          <p>If an account exists, a reset link has been sent. Check your inbox.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY VIEW -->
+    <div id="summaryView" class="view" style="display:none;">
+      <!-- Video info with thumbnail -->
+      <div id="videoInfo" class="video-info" style="display:none;">
+        <div class="video-thumb" id="videoThumb">
+          <img id="videoThumbImg" src="" alt="" />
+        </div>
+        <div id="videoTitle" class="video-title"></div>
+        <div id="videoChannel" class="video-channel"></div>
+      </div>
+
+      <!-- Usage bar (always visible when logged in) -->
+      <div id="usageBar" class="usage-bar">
+        <div class="usage-bar-fill" id="usageBarFill"></div>
+      </div>
+      <div class="usage-bar-labels">
+        <span id="usageBarText">3 of 3 remaining</span>
+        <button id="usageUpgrade" class="usage-upgrade" data-upgrade>Go unlimited</button>
+      </div>
+
+      <!-- Summarize button -->
+      <button id="summarizeBtn" class="primary-btn full">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        Summarize this video
+      </button>
+
+      <!-- Empty state (not on YouTube) -->
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" width="48" height="48"><path fill="#cbd5e1" d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        </div>
+        <p class="empty-title">No YouTube video detected</p>
+        <p class="empty-hint">Open a YouTube video and the summarize button will appear here.</p>
+      </div>
+
+      <!-- Recent summaries -->
+      <div id="historySection" class="history-section" style="display:none;">
+        <h3>Recent summaries</h3>
+        <div id="historyList"></div>
+      </div>
+
+      <!-- Loading state with progress steps -->
+      <div id="loadingState" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <div class="progress-steps">
+          <div class="progress-step active" id="step1">
+            <span class="step-dot"></span>
+            <span>Fetching transcript</span>
+          </div>
+          <div class="progress-step" id="step2">
+            <span class="step-dot"></span>
+            <span>Reading content</span>
+          </div>
+          <div class="progress-step" id="step3">
+            <span class="step-dot"></span>
+            <span>Writing summary</span>
+          </div>
+        </div>
+        <p class="tiny">This takes about 10 seconds</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="errorState" class="error-box" style="display:none;">
+        <p id="errorText"></p>
+        <button id="retryBtn" class="secondary-btn full" style="margin-top:12px;">Try again</button>
+      </div>
+
+      <!-- Daily limit reached -->
+      <div id="limitState" class="pro-box" style="display:none;">
+        <div class="pro-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32"><path fill="#FF4F00" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </div>
+        <p class="pro-title">You have used your free summaries for today</p>
+        <p class="subtext" id="limitText">Free accounts get 3 summaries a day. Pro is unlimited, any video length.</p>
+        <button class="primary-btn full" data-upgrade style="margin-top:12px;">Upgrade to Pro - $7/mo</button>
+        <button class="secondary-btn full" id="limitSignin" style="margin-top:8px;">Sign in</button>
+      </div>
+
+      <!-- Pro required state -->
+      <div id="proState" class="pro-box" style="display:none;">
+        <div class="pro-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32"><path fill="#FF4F00" d="M11 21h2v-4.07c3.94-.49 7-3.85 7-7.93h-2c0 3.31-2.69 6-6 6s-6-2.69-6-6H4c0 4.08 3.06 7.44 7 7.93V21z"/></svg>
+        </div>
+        <p class="pro-title">This video is <strong id="proDuration"></strong> minutes long</p>
+        <p class="subtext">Free tier covers videos up to 15 minutes. Upgrade to Pro for unlimited everything.</p>
+        <button class="primary-btn full" data-upgrade style="margin-top:12px;">Upgrade to Pro - $7/mo</button>
+        <p class="tiny" style="margin-top:8px;">No usage charged for this attempt</p>
+      </div>
+
+      <!-- Summary result -->
+      <div id="resultState" style="display:none;">
+        <div class="result-header">
+          <span class="result-badge" id="remainingBadge"></span>
+          <div class="result-actions">
+            <button id="shareBtn" class="link-btn" style="display:none;">Share</button>
+            <button id="copyBtn" class="link-btn">Copy</button>
+            <button id="downloadBtn" class="link-btn">Save</button>
+          </div>
+        </div>
+        <div id="summaryText" class="summary-text"></div>
+        <div id="takeawaysSection" style="display:none;">
+          <h3>Key Takeaways</h3>
+          <ul id="takeawaysList"></ul>
+        </div>
+        <div id="timestampsSection" style="display:none;">
+          <h3>Timestamps</h3>
+          <div id="timestampsList"></div>
+          <p class="tiny hint">Click any timestamp to jump to that moment</p>
+        </div>
+        <button id="resummarizeBtn" class="secondary-btn full">Summarize another video</button>
+      </div>
+
+      <!-- Usage info (bottom) -->
+      <div id="usageInfo" class="usage-info"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settingsView" class="view" style="display:none;">
+      <button class="back-btn" id="backFromSettings">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Back
+      </button>
+
+      <h2>Account</h2>
+      <div class="settings-card">
+        <div class="setting-row">
+          <span class="setting-label">Email</span>
+          <span id="settingsEmail" class="setting-value"></span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Plan</span>
+          <span id="settingsPlan" class="setting-value"></span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Usage</span>
+          <span id="settingsUsage" class="setting-value"></span>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="secondary-btn full" id="upgradeBtn" data-upgrade>Upgrade to Pro</button>
+        <a href="https://yepits.ai/terms" target="_blank" class="link-btn center">Terms of Service</a>
+        <a href="https://yepits.ai/privacy" target="_blank" class="link-btn center">Privacy Policy</a>
+        <a href="mailto:pava@yepits.ai" class="link-btn center">Contact support</a>
+        <button id="deleteAccountBtn" class="danger-btn full">Delete account</button>
+      </div>
+    </div>
+  </div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

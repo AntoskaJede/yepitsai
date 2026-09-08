@@ -1,0 +1,47 @@
+/* YepIts.ai — Injected button on YouTube */
+
+.yepits-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FF4F00;
+  color: #fff;
+  border: 2px solid #1a1a1a;
+  border-radius: 18px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.1s ease;
+  user-select: none;
+  height: 36px;
+  line-height: 1;
+  box-shadow: 2px 2px 0 #1a1a1a;
+}
+
+.yepits-summary-btn:hover {
+  background: #FF8C42;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+
+.yepits-summary-btn:active {
+  transform: translateY(0);
+}
+
+.yepits-summary-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.yepits-btn-container {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
