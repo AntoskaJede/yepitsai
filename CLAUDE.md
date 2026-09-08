@@ -104,3 +104,6 @@ server/
 
 ## Analytics (added 2026-09-08)
 First-party analytics live in `server/analytics.js` and the `events` table (`server/db.js`). Use `req.track('event_name', { video_id, extra })` inside any handler to log a funnel event; it never throws. Dashboard at `/stats?token=$ADMIN_TOKEN`. Do not add third-party analytics scripts. Keep the Privacy page's Cookies section accurate if cookies change.
+
+## Public summary pages (added 2026-09-08)
+`server/pages.js` renders `/s/<videoId>/<slug>`, `/summaries`, and a dynamic `/sitemap.xml` from the `public_summaries` table (written by `upsertPublicSummary` on every successful summary). `server/scripts/seed.js` bulk-creates pages from a playlist via the admin token. Keep these pages plain server-rendered HTML; the SPA cannot supply per-video meta tags.
