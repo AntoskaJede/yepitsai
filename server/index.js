@@ -18,7 +18,9 @@ import {
   db, createUser, getUserByEmail, getUserById, updateUserPlan,
   incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats,
   getCachedSummary, setCachedSummary, getAnonUsage, incrementAnonUsage,
+  setUserAttribution, logEvent,
 } from './db.js';
+import { trackMiddleware, mountAnalyticsRoutes } from './analytics.js';
 
 dotenv.config();
 
@@ -52,8 +54,7 @@ const APP_URL = process.env.APP_URL || (process.env.NODE_ENV === 'production' ? 
 // every time the process restarted, which meant popular videos got
 // re-summarized for free on every deploy and the anon 3/day limit reset.
 
-// Ensure /data directory exists for SQLite
-try { fs.mkdirSync('/data', { recursive: true }); } catch {}
+// SQLite directory creation now lives in db.js (respects DB_PATH).
 
 // ============================================================
 // Security headers
@@ -92,6 +93,12 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// First-party analytics: attaches req.visitor / req.attribution / req.track().
+// Routes are mounted before the API rate limiter so pageview beacons don't
+// eat into the 30/min budget that protects /api/summarize.
+app.use(trackMiddleware);
+mountAnalyticsRoutes(app);
+
 // Rate limiting — auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -129,6 +136,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req,
     if (userId) {
       updateUserPlan(userId, 'pro', session.customer, session.subscription);
       console.log(`User ${userId} upgraded to Pro`);
+      logUserEvent('pro_upgraded', userId, 'pro');
     }
   }
 
@@ -138,11 +146,25 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req,
     if (user) {
       updateUserPlan(user.id, 'free', user.stripe_customer_id, null);
       console.log(`User ${user.id} downgraded to free`);
+      logUserEvent('pro_canceled', user.id, 'free');
     }
   }
 
   res.json({ received: true });
 });
+
+// Log an event for a user outside a browser request (Stripe webhooks),
+// attributed to whatever channel first brought that user to the site.
+function logUserEvent(type, userId, plan) {
+  try {
+    const u = getUserById(userId);
+    let a = {};
+    try { a = u?.attribution ? JSON.parse(u.attribution) : {}; } catch {}
+    logEvent({ type, user_id: userId, plan, utm_source: a.utm_source, utm_medium: a.utm_medium, utm_campaign: a.utm_campaign, utm_content: a.utm_content, ref_host: a.ref_host });
+  } catch (err) {
+    console.error('[analytics] logUserEvent failed:', err.message);
+  }
+}
 
 // ============================================================
 // Email helpers
@@ -223,6 +245,8 @@ app.post('/api/auth/signup', async (req, res) => {
   const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const verifyToken = generateToken();
   const user = createUser({ id, email: normalized, passwordHash, verifyToken });
+  setUserAttribution(user.id, req.attribution);
+  req.track('signup', { user_id: user.id, plan: 'free' });
 
   // Send verification email
   const verifyUrl = `${APP_URL}?verify=${verifyToken}`;
@@ -240,6 +264,7 @@ app.post('/api/auth/login', async (req, res) => {
   if (!user) return res.status(401).json({ error: 'No account found with this email.' });
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
+  req.track('login', { user_id: user.id, plan: user.plan });
 
   const token = jwt.sign({ email: normalized, id: user.id }, EFFECTIVE_JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { email: normalized, plan: user.plan, verified: !!user.email_verified } });
@@ -685,6 +710,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Check usage AFTER we know it's a valid video, but DON'T increment yet
     const usage = checkUsage(req.user);
     if (!usage.allowed) {
+      req.track('summary_limit', { video_id: videoId });
       return res.status(402).json({
         error: `You've used all ${usage.limit} free summaries for today. Upgrade to Pro for unlimited summaries.`,
         limitReached: true,
@@ -694,6 +720,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Check cache first — massive cost savings!
     const cached = getCachedSummary(videoId);
     if (cached) {
+      req.track('summary', { video_id: videoId, extra: { cached: true } });
       return res.json({
         title: cached.title, channel: cached.channel, duration: cached.duration, videoId,
         summary: cached.summary, takeaways: cached.takeaways, timestamps: cached.timestamps,
@@ -704,6 +731,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
 
     const transcript = await getTranscript(videoId);
     if (!transcript) {
+      req.track('summary_no_captions', { video_id: videoId });
       return res.status(400).json({
         error: "This video doesn't have captions. Try a video with auto-generated or manual captions.",
       });
@@ -715,6 +743,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Check if video exceeds tier limit
     if (durationMinutes > maxLength) {
       const meta = await getVideoMeta(videoId);
+      req.track('summary_too_long', { video_id: videoId, extra: { duration: durationMinutes } });
       return res.json({
         proRequired: true,
         duration: durationMinutes,
@@ -758,6 +787,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Recompute `usage` after the increment so the response reflects the
     // post-request counter for both anon and authenticated users.
     const updatedUsage = checkUsage(req.user);
+    req.track('summary', { video_id: videoId, extra: { duration: durationMinutes } });
 
     res.json({
       title: meta.title, channel: meta.channel, duration: durationMinutes, videoId,
@@ -790,6 +820,7 @@ app.post('/api/create-checkout-session', auth, async (req, res) => {
   if (!stripe || !STRIPE_PRICE_ID) return res.json({ status: 'coming_soon' });
 
   try {
+    req.track('checkout_started');
     const origin = req.headers.origin || req.headers.referer || APP_URL;
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

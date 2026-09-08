@@ -1,6 +1,13 @@
 import Database from 'better-sqlite3';
 
-const db = new Database('/data/yepitsai.db', { verbose: null });
+import fs from 'fs';
+import path from 'path';
+
+// Railway mounts a persistent volume at /data. Override for local dev
+// (macOS has no writable /data) with DB_PATH=./data/yepitsai.db.
+const DB_PATH = process.env.DB_PATH || '/data/yepitsai.db';
+try { fs.mkdirSync(path.dirname(DB_PATH), { recursive: true }); } catch {}
+const db = new Database(DB_PATH, { verbose: null });
 
 db.pragma('journal_mode = WAL');
 
@@ -183,6 +190,116 @@ export function getStats() {
   const summaries = db.prepare('SELECT COUNT(*) as count FROM summaries').get().count;
   const proUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE plan = 'pro'").get().count;
   return { users, leads, summaries, proUsers };
+}
+
+// ============================================================
+// Analytics: events table + first-touch attribution on users
+// ============================================================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    path TEXT,
+    referrer TEXT,
+    ref_host TEXT,
+    utm_source TEXT,
+    utm_medium TEXT,
+    utm_campaign TEXT,
+    utm_content TEXT,
+    visitor TEXT,
+    user_id TEXT,
+    video_id TEXT,
+    plan TEXT,
+    meta TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+  CREATE INDEX IF NOT EXISTS idx_events_type_ts ON events(type, ts);
+`);
+try { db.exec('ALTER TABLE users ADD COLUMN attribution TEXT'); } catch {}
+
+const insertEvent = db.prepare(`
+  INSERT INTO events (ts, type, path, referrer, ref_host, utm_source, utm_medium, utm_campaign, utm_content, visitor, user_id, video_id, plan, meta)
+  VALUES (@ts, @type, @path, @referrer, @ref_host, @utm_source, @utm_medium, @utm_campaign, @utm_content, @visitor, @user_id, @video_id, @plan, @meta)
+`);
+
+export function logEvent(e) {
+  insertEvent.run({
+    ts: Date.now(), type: e.type,
+    path: e.path ?? null, referrer: e.referrer ?? null, ref_host: e.ref_host ?? null,
+    utm_source: e.utm_source ?? null, utm_medium: e.utm_medium ?? null,
+    utm_campaign: e.utm_campaign ?? null, utm_content: e.utm_content ?? null,
+    visitor: e.visitor ?? null, user_id: e.user_id ?? null, video_id: e.video_id ?? null,
+    plan: e.plan ?? null, meta: e.meta ?? null,
+  });
+}
+
+export function setUserAttribution(userId, attribution) {
+  if (!attribution) return;
+  db.prepare('UPDATE users SET attribution = ? WHERE id = ? AND attribution IS NULL')
+    .run(JSON.stringify(attribution), userId);
+}
+
+// Aggregates for /api/stats and /stats. "source" is first-touch:
+// utm_source if present, else the external referrer host, else "direct".
+export function getAnalytics(days = 30) {
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  const SRC = `COALESCE(NULLIF(utm_source, ''), NULLIF(ref_host, ''), 'direct')`;
+  const DAY = `date(ts / 1000, 'unixepoch')`;
+
+  const funnel = db.prepare(`
+    SELECT
+      COUNT(DISTINCT CASE WHEN type = 'pageview' THEN visitor END) AS visitors,
+      SUM(type = 'pageview') AS pageviews,
+      SUM(type = 'summary') AS summaries,
+      COUNT(DISTINCT CASE WHEN type = 'summary' THEN visitor END) AS summary_visitors,
+      SUM(type = 'signup') AS signups,
+      SUM(type = 'checkout_started') AS checkouts,
+      SUM(type = 'pro_upgraded') AS upgrades,
+      SUM(type = 'summary_limit') AS limit_hits,
+      SUM(type = 'summary_too_long') AS too_long,
+      SUM(type = 'summary_no_captions') AS no_captions
+    FROM events WHERE ts >= ?
+  `).get(since);
+  for (const k of Object.keys(funnel)) funnel[k] = funnel[k] || 0;
+
+  const daily = db.prepare(`
+    SELECT ${DAY} AS day,
+      COUNT(DISTINCT CASE WHEN type = 'pageview' THEN visitor END) AS visitors,
+      SUM(type = 'pageview') AS pageviews,
+      SUM(type = 'summary') AS summaries,
+      SUM(type = 'signup') AS signups,
+      SUM(type = 'pro_upgraded') AS upgrades
+    FROM events WHERE ts >= ? GROUP BY day ORDER BY day DESC
+  `).all(since);
+
+  const sources = db.prepare(`
+    SELECT ${SRC} AS source,
+      COUNT(DISTINCT CASE WHEN type = 'pageview' THEN visitor END) AS visitors,
+      SUM(type = 'summary') AS summaries,
+      SUM(type = 'signup') AS signups,
+      SUM(type = 'pro_upgraded') AS upgrades
+    FROM events WHERE ts >= ? GROUP BY source ORDER BY visitors DESC, summaries DESC LIMIT 50
+  `).all(since);
+
+  const pages = db.prepare(`
+    SELECT path, COUNT(*) AS pageviews, COUNT(DISTINCT visitor) AS visitors
+    FROM events WHERE ts >= ? AND type = 'pageview' AND path IS NOT NULL
+    GROUP BY path ORDER BY pageviews DESC LIMIT 50
+  `).all(since);
+
+  const referrers = db.prepare(`
+    SELECT ref_host, COUNT(DISTINCT visitor) AS visitors
+    FROM events WHERE ts >= ? AND type = 'pageview' AND ref_host IS NOT NULL
+    GROUP BY ref_host ORDER BY visitors DESC LIMIT 50
+  `).all(since);
+
+  const recent_summaries = db.prepare(`
+    SELECT datetime(ts / 1000, 'unixepoch') AS ts, video_id, plan, ${SRC} AS source
+    FROM events WHERE type = 'summary' ORDER BY ts DESC LIMIT 25
+  `).all();
+
+  return { days, since, funnel, daily, sources, pages, referrers, recent_summaries };
 }
 
 export { db };

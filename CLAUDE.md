@@ -101,3 +101,6 @@ server/
   index.js
   package.json
 ```
+
+## Analytics (added 2026-09-08)
+First-party analytics live in `server/analytics.js` and the `events` table (`server/db.js`). Use `req.track('event_name', { video_id, extra })` inside any handler to log a funnel event; it never throws. Dashboard at `/stats?token=$ADMIN_TOKEN`. Do not add third-party analytics scripts. Keep the Privacy page's Cookies section accurate if cookies change.
