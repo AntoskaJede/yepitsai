@@ -18,9 +18,10 @@ import {
   db, createUser, getUserByEmail, getUserById, updateUserPlan,
   incrementUsage, resetUsageIfNeeded, addLead, addSummary, getStats,
   getCachedSummary, setCachedSummary, getAnonUsage, incrementAnonUsage,
-  setUserAttribution, logEvent,
+  setUserAttribution, logEvent, upsertPublicSummary,
 } from './db.js';
 import { trackMiddleware, mountAnalyticsRoutes } from './analytics.js';
+import { mountPublicPages } from './pages.js';
 
 dotenv.config();
 
@@ -203,7 +204,20 @@ function auth(req, res, next) {
 }
 
 // Optional auth — allow both authenticated users and anonymous (IP-based)
+function isAdminRequest(req) {
+  const expected = process.env.ADMIN_TOKEN;
+  const given = req.headers['x-admin-token'];
+  if (!expected || !given) return false;
+  const a = Buffer.from(String(given)), b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function optionalAuth(req, res, next) {
+  // Internal seeding (scripts/seed.js): no quota, no length cap, no usage rows.
+  if (isAdminRequest(req)) {
+    req.user = { id: 'admin', email: null, plan: 'pro', isAdmin: true, summaries_used: 0, summaries_reset_at: 0 };
+    return next();
+  }
   const header = req.headers.authorization;
   if (header?.startsWith('Bearer ')) {
     try {
@@ -721,10 +735,12 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     const cached = getCachedSummary(videoId);
     if (cached) {
       req.track('summary', { video_id: videoId, extra: { cached: true } });
+      upsertPublicSummary(videoId, cached);
       return res.json({
         title: cached.title, channel: cached.channel, duration: cached.duration, videoId,
         summary: cached.summary, takeaways: cached.takeaways, timestamps: cached.timestamps,
         remaining: usage.remaining, limit: usage.limit,
+        publicUrl: `${APP_URL}/s/${videoId}`,
         cached: true, // Let frontend know this was cached
       });
     }
@@ -771,8 +787,13 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
     // Cache the summary for future requests
     setCachedSummary(videoId, { title: meta.title, channel: meta.channel, duration: durationMinutes, summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps });
 
+    // Every successful summary becomes a permanent public page (/s/<videoId>)
+    upsertPublicSummary(videoId, { title: meta.title, channel: meta.channel, duration: durationMinutes, summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps });
+
     // Only increment usage AFTER successful summary
-    if (req.user.id.startsWith('anon_')) {
+    if (req.user.isAdmin) {
+      // seeding: no usage accounting
+    } else if (req.user.id.startsWith('anon_')) {
       // Anonymous user — persist the counter to SQLite so it survives restarts
       const anonIp = req.user.id.slice('anon_'.length);
       incrementAnonUsage(anonIp);
@@ -793,6 +814,7 @@ app.post('/api/summarize', optionalAuth, async (req, res) => {
       title: meta.title, channel: meta.channel, duration: durationMinutes, videoId,
       summary: summary.summary, takeaways: summary.takeaways, timestamps: summary.timestamps,
       remaining: updatedUsage.remaining, limit: usage.limit,
+      publicUrl: `${APP_URL}/s/${videoId}`,
     });
   } catch (err) {
     console.error('Summarize error:', err);
@@ -909,6 +931,10 @@ app.post('/api/compare', optionalAuth, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', ...getStats() });
 });
+
+// Server-rendered public pages: /s/<videoId>, /summaries, /sitemap.xml.
+// Registered before static serving so the dynamic sitemap wins over public/sitemap.xml.
+mountPublicPages(app);
 
 // ============================================================
 // Serve frontend

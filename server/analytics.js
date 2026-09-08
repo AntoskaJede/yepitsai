@@ -124,6 +124,29 @@ export function trackMiddleware(req, res, next) {
   next();
 }
 
+// Give a first-time visitor a cookie and lock in first-touch attribution.
+// Used by the /api/track beacon and by server-rendered public pages, which
+// never load the React app and so never fire the beacon themselves.
+export function ensureVisitor(req, res, { query = {}, referrer, path } = {}) {
+  if (!req.visitorFromCookie) {
+    req.visitor = 'v_' + crypto.randomBytes(12).toString('hex');
+    req.visitorFromCookie = true;
+    setCookie(res, VISITOR_COOKIE, req.visitor, ONE_YEAR);
+  }
+  if (!req.attribution) {
+    const attr = extractAttribution({ query, referrer, path });
+    if (attr) {
+      req.attribution = attr;
+      setCookie(res, ATTR_COOKIE, JSON.stringify(attr), THIRTY_DAYS);
+    }
+  }
+}
+
+export function externalRefHost(referrer) {
+  const host = refHost(referrer);
+  return host && !isInternal(host) ? host : null;
+}
+
 const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
 
 function checkAdmin(req) {
@@ -150,17 +173,7 @@ export function mountAnalyticsRoutes(app) {
       const { type = 'pageview', path, referrer, utm = {}, extra } = req.body || {};
       if (!['pageview', 'view', 'click'].includes(type)) return res.status(400).json({ error: 'bad type' });
 
-      if (!req.visitorFromCookie) {
-        req.visitor = 'v_' + crypto.randomBytes(12).toString('hex');
-        setCookie(res, VISITOR_COOKIE, req.visitor, ONE_YEAR);
-      }
-      if (!req.attribution) {
-        const attr = extractAttribution({ query: utm, referrer, path });
-        if (attr) {
-          req.attribution = attr;
-          setCookie(res, ATTR_COOKIE, JSON.stringify(attr), THIRTY_DAYS);
-        }
-      }
+      ensureVisitor(req, res, { query: utm, referrer, path });
       const host = refHost(referrer);
       req.track(type, {
         path: path ? String(path).slice(0, 200) : null,

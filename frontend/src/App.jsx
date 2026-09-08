@@ -41,6 +41,7 @@ function App() {
   useEffect(() => {
 
     const params = new URLSearchParams(window.location.search)
+    const prefillUrl = params.get('url')
     const verifyToken = params.get('verify')
     const upgraded = params.get('upgraded')
     const canceled = params.get('canceled')
@@ -60,6 +61,10 @@ function App() {
     } else if (canceled) {
       cleanUrl()
       setNotice('Upgrade canceled. You can upgrade whenever you\'re ready.')
+    } else if (prefillUrl) {
+      // Arrived from a public summary page's "Summarize your own video" form
+      cleanUrl()
+      handleSummarize(prefillUrl)
     }
   }, [])
 
@@ -360,7 +365,18 @@ function Landing({ onSummarize, loading, error, user, notice }) {
 
 // ─── Summary Result View ──────────────────────────────
 function SummaryView({ data, onReset }) {
-  const { title, summary, takeaways, timestamps, videoId, remaining } = data
+  const { title, summary, takeaways, timestamps, videoId, remaining, publicUrl } = data
+  const [shared, setShared] = useState('')
+  const shareUrl = publicUrl || (videoId ? `${window.location.origin}/s/${videoId}` : '')
+  const handleShare = async () => {
+    if (!shareUrl) return
+    track('share', { video_id: videoId })
+    try {
+      if (navigator.share) { await navigator.share({ title: `${title} — Summary`, url: shareUrl }); setShared('Shared') }
+      else { await navigator.clipboard.writeText(shareUrl); setShared('Link copied') }
+    } catch {}
+    setTimeout(() => setShared(''), 2500)
+  }
   const handleExport = (format) => {
     let content = `# ${title}\n\n## Summary\n${summary}\n`
     if (takeaways?.length) content += `\n## Key Takeaways\n${takeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n`
@@ -417,6 +433,16 @@ function SummaryView({ data, onReset }) {
             <span className="text-clay font-medium cursor-pointer" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>Upgrade to Pro</span>
             {' '}for unlimited summaries and longer videos.
           </p>
+        </div>
+      )}
+      {shareUrl && (
+        <div className="card-light mb-6 text-center">
+          <p className="text-sm text-ink-muted mb-3">This summary has a public page you can send to anyone.</p>
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+            <button onClick={handleShare} className="btn-secondary">Share this summary</button>
+            <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-clay font-medium hover:underline">Open page</a>
+            {shared && <span className="text-sm text-moss font-medium">{shared}</span>}
+          </div>
         </div>
       )}
       <p className="text-center text-xs text-ink-faint mb-6">Summarized with YepIts.ai</p>
@@ -544,7 +570,7 @@ function FAQSection() {
     { q: 'Is there a Chrome extension?', a: 'Yes! The YepIts.ai extension adds a button to any YouTube video. Click it and the summary appears in a side panel — no copy-pasting URLs.' },
     { q: 'How accurate are the summaries?', a: "Very. We use Claude (by Anthropic) to analyze the full transcript and extract the most important points. It works best on talking-head videos, lectures, and podcasts where there's clear speech." },
     { q: 'What languages are supported?', a: "Any video that has captions or subtitles (either auto-generated or manual). Most YouTube videos qualify. The summary is generated in English regardless of the video language." },
-    { q: 'Is my data stored?', a: "We store your email and which videos you've summarized (for usage tracking). We don't store the actual video content. Your summaries are not shared with anyone." },
+    { q: 'Is my data stored?', a: "We store your email and which videos you've summarized (for usage tracking). We don't store the actual video content. Summaries themselves describe a public YouTube video, not you, and each one gets a public page at yepits.ai/s/… so others can find it. Nothing on that page identifies who requested it." },
     { q: 'Can I export my summaries?', a: 'Yes — Pro users can export to plain text or Markdown format with one click.' },
     { q: 'Does it work on podcasts?', a: 'Absolutely. Podcasts are actually one of the best use cases — get the key points of a 2-hour episode in seconds.' }
   ]
@@ -574,6 +600,7 @@ function Footer({ onNavigate }) {
       <div className="max-w-5xl mx-auto px-6 py-6 text-center">
         <p className="text-sm text-ink-faint mb-2">© 2026 YepIts.ai · Made by a human. <span className="text-clay">Powered by AI.</span></p>
         <div className="flex gap-4 justify-center text-sm text-ink-faint">
+          <a href="/summaries" className="hover:text-ink transition-colors">Summaries</a>
           <button onClick={() => onNavigate('blog')} className="hover:text-ink transition-colors">Blog</button>
           <button onClick={() => onNavigate('terms')} className="hover:text-ink transition-colors">Terms</button>
           <button onClick={() => onNavigate('privacy')} className="hover:text-ink transition-colors">Privacy</button>
@@ -610,7 +637,7 @@ function PrivacyView() {
       <h1 className="text-3xl font-extrabold text-ink mb-6">Privacy Policy</h1>
       <div className="space-y-4 text-ink-muted leading-relaxed">
         <p className="text-sm text-ink-faint">Last updated: September 8, 2026</p>
-        <div><h2 className="text-lg font-bold text-ink mb-2">What We Collect</h2><p><strong>Email address</strong> — when you sign up.</p><p><strong>Usage data</strong> — which videos you summarize (stored as video IDs) and how often you use the service.</p><p><strong>IP address</strong> — hashed and used only for rate limiting and abuse prevention. We don't store raw IPs.</p></div>
+        <div><h2 className="text-lg font-bold text-ink mb-2">What We Collect</h2><p><strong>Email address</strong> — when you sign up.</p><p><strong>Usage data</strong> — which videos you summarize (stored as video IDs) and how often you use the service. Generated summaries describe the public video, not you, and are published at yepits.ai/s/… without any reference to who requested them.</p><p><strong>IP address</strong> — hashed and used only for rate limiting and abuse prevention. We don't store raw IPs.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">What We Do With It</h2><p>We use your email to authenticate you and notify you about your account. We use usage data to enforce plan limits and improve the service. That's it. No selling data, no third-party ad tracking.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">Payments</h2><p>Payment processing is handled by Stripe. We don't see or store your card details — Stripe does.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">AI Processing</h2><p>Video transcripts are sent to Anthropic (Claude) for summarization. Anthropic's data retention is governed by their <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener" className="text-clay hover:underline">privacy policy</a>.</p></div>

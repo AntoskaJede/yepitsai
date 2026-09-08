@@ -302,4 +302,74 @@ export function getAnalytics(days = 30) {
   return { days, since, funnel, daily, sources, pages, referrers, recent_summaries };
 }
 
+// ============================================================
+// Public summary pages (/s/<videoId>) — permanent, unlike summary_cache
+// ============================================================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS public_summaries (
+    video_id TEXT PRIMARY KEY,
+    slug TEXT,
+    title TEXT,
+    channel TEXT,
+    duration INTEGER,
+    summary TEXT NOT NULL,
+    takeaways TEXT NOT NULL,
+    timestamps TEXT NOT NULL,
+    views INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_public_summaries_created ON public_summaries(created_at);
+`);
+
+export function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'video';
+}
+
+export function upsertPublicSummary(videoId, data) {
+  if (!data?.summary) return;
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO public_summaries (video_id, slug, title, channel, duration, summary, takeaways, timestamps, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(video_id) DO UPDATE SET
+      slug = excluded.slug, title = excluded.title, channel = excluded.channel, duration = excluded.duration,
+      summary = excluded.summary, takeaways = excluded.takeaways, timestamps = excluded.timestamps,
+      updated_at = excluded.updated_at
+  `).run(
+    videoId, slugify(data.title), data.title || null, data.channel || null, data.duration || null,
+    data.summary, JSON.stringify(data.takeaways || []), JSON.stringify(data.timestamps || []), now, now
+  );
+}
+
+function rowToSummary(row) {
+  if (!row) return null;
+  return { ...row, takeaways: JSON.parse(row.takeaways || '[]'), timestamps: JSON.parse(row.timestamps || '[]') };
+}
+
+export function getPublicSummary(videoId) {
+  return rowToSummary(db.prepare('SELECT * FROM public_summaries WHERE video_id = ?').get(videoId));
+}
+
+export function incrementSummaryViews(videoId) {
+  db.prepare('UPDATE public_summaries SET views = views + 1 WHERE video_id = ?').run(videoId);
+}
+
+export function listPublicSummaries({ limit = 24, offset = 0 } = {}) {
+  return db.prepare('SELECT video_id, slug, title, channel, duration, views, created_at, updated_at, substr(summary, 1, 220) AS excerpt FROM public_summaries ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+}
+
+export function countPublicSummaries() {
+  return db.prepare('SELECT COUNT(*) AS c FROM public_summaries').get().c;
+}
+
+export function allPublicSummaryUrls() {
+  return db.prepare('SELECT video_id, slug, updated_at FROM public_summaries ORDER BY created_at DESC LIMIT 45000').all();
+}
+
 export { db };
