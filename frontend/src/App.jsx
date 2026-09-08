@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BlogList, BlogPost } from './Blog'
+import { initTracking, track } from './track'
 
 const API = ''
 
@@ -14,10 +15,30 @@ function App() {
   const [notice, setNotice] = useState('')
   const [authMode, setAuthMode] = useState('login')
 
-  useEffect(() => {
+  // Map the URL to a view. Runs on load and on browser back/forward so
+  // /blog and /blog/<slug> links (and the sitemap entries) open the right page.
+  const routeFromPath = () => {
     const path = window.location.pathname
     if (path === '/terms') setView('terms')
     else if (path === '/privacy') setView('privacy')
+    else if (path === '/blog' || path === '/blog/') setView('blog')
+    else if (path.startsWith('/blog/')) { setBlogSlug(path.slice('/blog/'.length).replace(/\/$/, '')); setView('blog-post') }
+    else setView('landing')
+  }
+
+  useEffect(() => {
+    initTracking()
+    routeFromPath()
+    window.addEventListener('popstate', routeFromPath)
+    return () => window.removeEventListener('popstate', routeFromPath)
+  }, [])
+
+  // Funnel: which screens people actually reach (landing is the pageview itself).
+  useEffect(() => {
+    if (view !== 'landing') track('view', { view })
+  }, [view])
+
+  useEffect(() => {
 
     const params = new URLSearchParams(window.location.search)
     const verifyToken = params.get('verify')
@@ -106,8 +127,9 @@ function App() {
     } catch { setError('Could not start checkout. Try again.') }
   }
 
-  const navigateToBlogPost = (slug) => { setBlogSlug(slug); setView('blog-post'); window.scrollTo({ top: 0 }) }
-  const navigateToBlog = () => { setView('blog'); window.scrollTo({ top: 0 }) }
+  const pushPath = (p) => { if (window.location.pathname !== p) window.history.pushState({}, '', p) }
+  const navigateToBlogPost = (slug) => { setBlogSlug(slug); setView('blog-post'); pushPath(`/blog/${slug}`); window.scrollTo({ top: 0 }) }
+  const navigateToBlog = () => { setView('blog'); pushPath('/blog'); window.scrollTo({ top: 0 }) }
 
   return (
     <div className="min-h-screen">
@@ -587,13 +609,13 @@ function PrivacyView() {
     <div className="max-w-2xl mx-auto px-6 py-12">
       <h1 className="text-3xl font-extrabold text-ink mb-6">Privacy Policy</h1>
       <div className="space-y-4 text-ink-muted leading-relaxed">
-        <p className="text-sm text-ink-faint">Last updated: June 19, 2026</p>
+        <p className="text-sm text-ink-faint">Last updated: September 8, 2026</p>
         <div><h2 className="text-lg font-bold text-ink mb-2">What We Collect</h2><p><strong>Email address</strong> — when you sign up.</p><p><strong>Usage data</strong> — which videos you summarize (stored as video IDs) and how often you use the service.</p><p><strong>IP address</strong> — hashed and used only for rate limiting and abuse prevention. We don't store raw IPs.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">What We Do With It</h2><p>We use your email to authenticate you and notify you about your account. We use usage data to enforce plan limits and improve the service. That's it. No selling data, no third-party ad tracking.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">Payments</h2><p>Payment processing is handled by Stripe. We don't see or store your card details — Stripe does.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">AI Processing</h2><p>Video transcripts are sent to Anthropic (Claude) for summarization. Anthropic's data retention is governed by their <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener" className="text-clay hover:underline">privacy policy</a>.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">Data Retention</h2><p>Your account data is kept as long as your account is active. You can request deletion by emailing us.</p></div>
-        <div><h2 className="text-lg font-bold text-ink mb-2">Cookies</h2><p>We use localStorage to store your authentication token. No tracking cookies.</p></div>
+        <div><h2 className="text-lg font-bold text-ink mb-2">Cookies</h2><p>We use localStorage to store your authentication token. We also set two first-party cookies: a random visitor ID, and, if you arrived through a link with campaign tags, the source you came from. These are used only to count visits and see which channels bring people here. No third-party analytics, no ad tracking, and nothing is shared with anyone.</p></div>
         <div><h2 className="text-lg font-bold text-ink mb-2">Contact</h2><p>Privacy questions? Email <a href="mailto:pava@askfred.app" className="text-clay hover:underline">pava@askfred.app</a></p></div>
       </div>
     </div>

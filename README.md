@@ -38,3 +38,13 @@ Open http://localhost:5173
    - `CORS_ORIGINS` (optional; comma-separated, defaults to `https://yepits.ai,http://localhost:5173`)
    - `NODE_ENV=production`
 5. Point yepits.ai domain to the Railway service
+
+## Analytics
+
+First-party, no third-party script. `server/analytics.js` + the `events` table in SQLite.
+
+- Frontend fires `pageview` on load and `view` on every screen change (`frontend/src/track.js`).
+- Server logs `summary`, `summary_limit`, `summary_too_long`, `summary_no_captions`, `signup`, `login`, `checkout_started`, `pro_upgraded`, `pro_canceled`.
+- Attribution is first-touch: UTM params or external referrer on the first visit are stored in a 30-day cookie and copied onto the user row at signup, so Stripe upgrades are attributed to the channel that brought the person in.
+- Dashboard: `https://yepits.ai/stats?token=<ADMIN_TOKEN>` (7/30/90 day views). JSON: `GET /api/stats?days=30` with header `x-admin-token`.
+- Always post links with UTMs: `?utm_source=reddit_studytips&utm_medium=social&utm_campaign=launch_v2`.
